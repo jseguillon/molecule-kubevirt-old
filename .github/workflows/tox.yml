@@ -40,10 +40,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v1
-      - name: Install system dependencies
+      - name: Install system 
+        # FIXME : how do we test mutliple ansible version ? 
+        # FIXME : move docker build to test-setup script
         run: |
           sudo apt-get update \
-          && sudo apt-get install -y  ansible \
+          && sudo apt-get install -y ansible docker-ce docker-ce-cli containerd.io \
+          && bash molecule-kubevirt/tools/test-setup.sh \
+          && docker build . --file tools/Dockerfile  -t molecule_kubevirt:latest \
+          && kind load docker-image molecule_kubevirt:latest \
           && ansible-doc -l | grep docker_container
       - name: Find python version
         id: py_ver
@@ -64,14 +69,14 @@ jobs:
           python-version: ${{ steps.py_ver.outputs.version }}
       - name: Install dependencies
         run: |
-          docker version
-          docker info
+          kubectl get all --all-namespaces 
           python -m pip install -U pip
-          pip install tox
-      - name: Run tox -e ${{ matrix.tox_env }}
+          python -m pip install tox
+      - name: Run tox -e ${{ matrix.tox_env }} inside Kubernetes cluster
+        #FIXME : simple python build with local path map in Kind would simplify this
         run: |
-          echo "${{ matrix.PREFIX }} tox -e ${{ matrix.tox_env }}"
-          ${{ matrix.PREFIX }} tox -e ${{ matrix.tox_env }}
+          echo "kubectl run -i -t molecule --image=molecule_kubevirt:latest --image-pull-policy='Never' --serviceaccount='molecule-kubevirt' --env='${{ matrix.PREFIX }}'' -- tox -e ${{ matrix.tox_env }} -c /opt/molecule_kubevirt/tox.ini"
+          kubectl run -i -t molecule --image=molecule_kubevirt:latest --image-pull-policy='Never' --serviceaccount='molecule-kubevirt' --env='${{ matrix.PREFIX }}'' -- tox -e ${{ matrix.tox_env }} -c /opt/molecule_kubevirt/tox.ini
 
   publish:
     name: Publish to PyPI registry

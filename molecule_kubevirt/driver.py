@@ -17,7 +17,7 @@
 #  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 #  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 #  DEALINGS IN THE SOFTWARE.
-"""Docker Driver Module."""
+"""Kubevirt Driver Module."""
 
 from __future__ import absolute_import
 
@@ -26,13 +26,13 @@ import os
 from molecule import logger
 from molecule.api import Driver
 from molecule.util import lru_cache, sysexit_with_message
-
+from molecule import util
 log = logger.get_logger(__name__)
 
 
-class Docker(Driver):
+class KubeVirt(Driver):
     """
-    Docker Driver Class.
+    Kubevirt Driver Class.
 
     The class responsible for managing `Docker`_ containers.  `Docker`_ is
     the default driver used in Molecule.
@@ -51,7 +51,7 @@ class Docker(Driver):
     .. code-block:: yaml
 
         driver:
-          name: docker
+          name: kubevirt
         platforms:
           - name: instance
             hostname: instance
@@ -97,7 +97,7 @@ class Docker(Driver):
             dns_servers:
               - 8.8.8.8
             etc_hosts: "{'host1.example.com': '10.3.1.5'}"
-            docker_networks:
+            kubevirt_networks:
               - name: foo
                 ipam_config:
                   - subnet: '10.3.1.0/24'
@@ -107,7 +107,7 @@ class Docker(Driver):
               - name: bar
             network_mode: host
             purge_networks: true
-            docker_host: tcp://localhost:12376
+            kubevirt_host: tcp://localhost:12376
             cacert_path: /foo/bar/ca.pem
             cert_path: /foo/bar/cert.pem
             key_path: /foo/bar/key.pem
@@ -140,8 +140,8 @@ class Docker(Driver):
               socket types can be configured. For details, please reference
               `Docker daemon socket options`_.
 
-    .. code-block:: yaml
-
+    .. code-block:: yaml 
+        FIXME : change doc
         platforms:
         - name: instance
           image: centos:8
@@ -155,7 +155,7 @@ class Docker(Driver):
 
     .. code-block:: bash
 
-        $ python3 -m pip install molecule[docker]
+        $ python3 -m pip install molecule[kubevirt]
 
     When pulling from a private registry, it is the user's discretion to decide
     whether to use hard-code strings or environment variables for passing
@@ -172,7 +172,7 @@ class Docker(Driver):
     .. code-block:: yaml
 
         driver:
-          name: docker
+          name: kubevirt
           safe_files:
             - foo
 
@@ -182,9 +182,9 @@ class Docker(Driver):
     """  # noqa
 
     def __init__(self, config=None):
-        """Construct Docker."""
-        super(Docker, self).__init__(config)
-        self._name = "docker"
+        """Construct Kubevirt."""
+        super(KubeVirt, self).__init__(config)
+        self._name = "kubevirt"
 
     @property
     def name(self):
@@ -194,63 +194,91 @@ class Docker(Driver):
     def name(self, value):
         self._name = value
 
-    @property
-    def login_cmd_template(self):
-        return (
-            "docker exec "
-            "-e COLUMNS={columns} "
-            "-e LINES={lines} "
-            "-e TERM=bash "
-            "-e TERM=xterm "
-            "-ti {instance} bash"
-        )
-
+    # IMPORTANT : use NodePort for ssh ok (or port-forward ? => option)
+    #https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud-2009.qcow2
     @property
     def default_safe_files(self):
-        return [os.path.join(self._config.scenario.ephemeral_directory, "Dockerfile")]
+        return [os.path.join(self._config.scenario.ephemeral_directory, "Dockerfile")] # FIXME : gusse more safe files needed here :)
+
+    @property
+    def login_cmd_template(self):
+        connection_options = " ".join(self.ssh_connection_options)
+
+        return (
+            "ssh {{address}} "
+            "-l {{user}} "
+            "-p {{port}} "
+            "-i {{identity_file}} "
+            "{}"
+        ).format(connection_options)
 
     @property
     def default_ssh_connection_options(self):
-        return []
+        return self._get_ssh_connection_options()
+
+    def _get_instance_config(self, instance_name):
+        instance_config_dict = util.safe_load_file(self._config.driver.instance_config)
+
+        return next(
+            item for item in instance_config_dict if item["instance"] == instance_name
+        )        
 
     def login_options(self, instance_name):
-        return {"instance": instance_name}
+        d = {"instance": instance_name}
+
+        return util.merge_dicts(d, self._get_instance_config(instance_name))
 
     def ansible_connection_options(self, instance_name):
-        x = {"ansible_connection": "docker"}
-        if "DOCKER_HOST" in os.environ:
-            x["ansible_docker_extra_args"] = "-H={}".format(os.environ["DOCKER_HOST"])
-        return x
+        try:
+            d = self._get_instance_config(instance_name)
+
+            return {
+                "ansible_user": d["user"],
+                "ansible_host": d["address"],
+                "ansible_port": d["port"],
+                "ansible_private_key_file": d["identity_file"],
+                "connection": "ssh",
+                "ansible_ssh_common_args": " ".join(self.ssh_connection_options),
+            }
+        except StopIteration:
+            return {}
+        except IOError:
+            # Instance has yet to be provisioned , therefore the
+            # instance_config is not on disk.
+            return {}
+
 
     @lru_cache()
     def sanity_checks(self):
         """Implement Docker driver sanity checks."""
         log.info("Sanity checks: '{}'".format(self._name))
+        # FIXME : same for kubernetes
+        # try:
+        #     import docker
+        #     import requests
 
-        try:
-            import docker
-            import requests
-
-            docker_client = docker.from_env()
-            docker_client.ping()
-        except requests.exceptions.ConnectionError:
-            msg = (
-                "Unable to contact the Docker daemon. "
-                "Please refer to https://docs.docker.com/config/daemon/ "
-                "for managing the daemon"
-            )
-            sysexit_with_message(msg)
+        #     docker_client = docker.from_env()
+        #     docker_client.ping()
+        # except requests.exceptions.ConnectionError:
+        #     msg = (
+        #         "Unable to contact the Docker daemon. "
+        #         "Please refer to https://docs.docker.com/config/daemon/ "
+        #         "for managing the daemon"
+        #     )
+        #     sysexit_with_message(msg)
 
     def reset(self):
-        import docker
+        # FIXME : do same for kubevirt
+        log.info("Stopping (fake)")
+        # import docker
 
-        client = docker.from_env()
-        for c in client.containers.list(filters={"label": "owner=molecule"}):
-            log.info("Stopping docker container %s ..." % c.id)
-            c.stop(timeout=3)
-        result = client.containers.prune(filters={"label": "owner=molecule"})
-        for c in result.get("ContainersDeleted") or []:
-            log.info("Deleted container %s" % c)
-        for n in client.networks.list(filters={"label": "owner=molecule"}):
-            log.info("Removing docker network %s ...." % n.name)
-            n.remove()
+        # client = docker.from_env()
+        # for c in client.containers.list(filters={"label": "owner=molecule"}):
+        #     log.info("Stopping docker container %s ..." % c.id)
+        #     c.stop(timeout=3)
+        # result = client.containers.prune(filters={"label": "owner=molecule"})
+        # for c in result.get("ContainersDeleted") or []:
+        #     log.info("Deleted container %s" % c)
+        # for n in client.networks.list(filters={"label": "owner=molecule"}):
+        #     log.info("Removing docker network %s ...." % n.name)
+        #     n.remove()

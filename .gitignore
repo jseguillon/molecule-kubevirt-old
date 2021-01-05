@@ -8,14 +8,12 @@
 .coverage.*
 .eggs/
 .tox/
-.vagrant/
 .pytest_cache/
 build/
 dist/
 doc/build/
 htmlcov/
 pytestdebug.log
-ubuntu-xenial-16.04-cloudimg-console.log
 .python-version
 coverage.xml
 pip-wheel-metadata

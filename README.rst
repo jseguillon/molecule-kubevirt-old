@@ -1,13 +1,15 @@
+*** THIS IS A Proof Of Concept PLEASE DONT TRUST any DOC ***
+
 **********************
-Molecule Docker Plugin
+Molecule kubevirt Plugin
 **********************
 
-.. image:: https://badge.fury.io/py/molecule-docker.svg
-   :target: https://badge.fury.io/py/molecule-docker
+.. image:: https://badge.fury.io/py/molecule-kubevirt.svg
+   :target: https://badge.fury.io/py/molecule-kubevirt
    :alt: PyPI Package
 
-.. image:: https://github.com/ansible-community/molecule-docker/workflows/tox/badge.svg
-   :target: https://github.com/ansible-community/molecule-docker/actions
+.. image:: https://github.com/ansible-community/molecule-kubevirt/workflows/tox/badge.svg
+   :target: https://github.com/ansible-community/molecule-kubevirt/actions
 
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
    :target: https://github.com/python/black
@@ -17,7 +19,7 @@ Molecule Docker Plugin
    :target: LICENSE
    :alt: Repository License
 
-Molecule Docker Plugin is designed to allow use docker containers for
+Molecule kubevirt Plugin is designed to allow use kubevirt containers for
 provisioning test resources.
 
 Please note that this driver is currently in its early stage of development.
