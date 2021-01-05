@@ -1,0 +1,20 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  # FIXME : use kustomize
+  name: molecule
+spec:
+  template:
+    spec:
+      serviceAccountName: molecule-kubevirt
+      containers:
+      - name: molecule
+        image: molecule_kubevirt:latest
+        imagePullPolicy: IfNotPresent
+        command: [ "/bin/bash", "-c", "--" ]
+        args: ["tox -e py38 -c /opt/molecule_kubevirt/tox.ini"]
+        env: 
+          - name: PYTEST_REQPASS
+            value: "3" 
+      restartPolicy: Never
+  backoffLimit: 0

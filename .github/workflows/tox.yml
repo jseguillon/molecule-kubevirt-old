@@ -75,9 +75,12 @@ jobs:
           python -m pip install tox
       - name: Run tox -e ${{ matrix.tox_env }} inside Kubernetes cluster
         #FIXME : simple python build with local path map in Kind would simplify this
+        #FIXME : need kustomize for var injection
+        #FIXME : nee to check job result and exit accordingly
         run: |
-          echo "kubectl run -i molecule --image=molecule_kubevirt:latest --image-pull-policy='Never' --serviceaccount='molecule-kubevirt' --env='${{ matrix.PREFIX }}' -- tox -e ${{ matrix.tox_env }} -c /opt/molecule_kubevirt/tox.ini"
-          kubectl run -i -t molecule --image=molecule_kubevirt:latest --image-pull-policy='Never' --serviceaccount='molecule-kubevirt' --env='${{ matrix.PREFIX }}' -- tox -e ${{ matrix.tox_env }} -c /opt/molecule_kubevirt/tox.ini
+          echo "kubectl apply -f tools/test-job.yaml"
+          kubectl apply -f /home/runner/work/molecule-kubevirt/molecule-kubevirt/tools/test-job.yaml
+          kubectl logs -l job-name=molecule -f 
 
   publish:
     name: Publish to PyPI registry
