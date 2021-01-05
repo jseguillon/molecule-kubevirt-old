@@ -10,7 +10,7 @@ chmod +x ./kind
 ./kind create cluster
 
 # TODO : check if really needed
-sudo apt-get install -y qemu kvm
+sudo apt-get install -y qemu
 
 # Kube-virt Operator and CRDs
 export VERSION=v0.33.0
