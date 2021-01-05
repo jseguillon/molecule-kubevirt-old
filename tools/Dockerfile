@@ -1,4 +1,4 @@
-FROM python:3.8.7
+FROM python:3
 
 #FIXME : bad format/URL for kubernetes galaxy? 
 RUN python3 -m pip install tox ansible openshift jmespath && \
