@@ -79,7 +79,7 @@ jobs:
         #FIXME : nee to check job result and exit accordingly
         run: |
           echo "kubectl apply -f tools/test-job.yaml"
-          kubectl apply -f /home/runner/work/molecule-kubevirt/molecule-kubevirt/tools/test-job.yaml
+          kubectl apply -f /home/runner/work/molecule-kubevirt/molecule-kubevirt/tools/test-job.yaml && sleep 15
           kubectl logs -l job-name=molecule -f 
 
   publish:
