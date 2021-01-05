@@ -46,7 +46,8 @@ jobs:
         run: |
           sudo apt-get update \
           && sudo apt-get install -y ansible  moby-engine moby-cli containerd.io \
-          && bash molecule-kubevirt/tools/test-setup.sh \
+          && cd /home/runner/work/molecule-kubevirt/molecule-kubevirt/molecule-kubevirt/ \ 
+          && chmod +x tools/test-setup.sh && tools/test-setup.sh \
           && docker build . --file tools/Dockerfile  -t molecule_kubevirt:latest \
           && kind load docker-image molecule_kubevirt:latest \
           && ansible-doc -l | grep docker_container
