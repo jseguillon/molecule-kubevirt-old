@@ -45,7 +45,7 @@ jobs:
         # FIXME : move docker build to test-setup script
         run: |
           sudo apt-get update \
-          && sudo apt-get install -y ansible docker-ce docker-ce-cli containerd.io \
+          && sudo apt-get install -y ansible  moby-engine moby-cli containerd.io \
           && bash molecule-kubevirt/tools/test-setup.sh \
           && docker build . --file tools/Dockerfile  -t molecule_kubevirt:latest \
           && kind load docker-image molecule_kubevirt:latest \
