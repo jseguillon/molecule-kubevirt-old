@@ -95,13 +95,14 @@
     #   with_items: "{{ molecule_yml.platforms  }}"
       
     - name: Create virtual machine 'myvm' and start it
+      ignore_errors: true
       community.general.kubevirt_vm:
           state: running
-          wait: false
-          wait_timeout: "{{ item.wait_timeout | default(1800) }}"
+          wait: true
+          wait_timeout: "{{ item.wait_timeout | default(180) }}"
           name: "{{ item.name }}"
           namespace: "{{ item.namespace | default('default') }}"
-          memory: "{{ item.memory | default('1Gi') }}"
+          memory: "{{ item.memory | default('500Mib') }}"
           cpu_cores: "{{ item.cpu_cores | default(omit) }}"
           machine_type: "{{ item.machine_type | default('q35') }}"
 
@@ -172,10 +173,21 @@
       register: service
       with_items: "{{ molecule_yml.platforms  }}"
     
-    - name: debug wait check status
+    - name: debug 1
       shell: 
-        cmd: "curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.20.0/bin/linux/amd64/kubectl; chmod +x ./kubectl; ./kubectl describe vm; kubectl describe vmi; ./kubectl describe pod; ./kubectl describe svc; sleep 60" 
-      with_items: "{{ range(1, 15) | list }}"
+        cmd: "curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.20.0/bin/linux/amd64/kubectl; chmod +x ./kubectl" 
+
+    - name: debug 2
+      shell: 
+        cmd: "./kubectl describe vm"
+
+    - name: debug 3
+      shell: 
+        cmd: "./kubectl describe pod" 
+
+    - name: debug 4
+      shell: 
+        cmd: "./kubectl get events -A" 
 
     - name: debug servers 
       debug:
