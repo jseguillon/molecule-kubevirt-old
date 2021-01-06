@@ -44,6 +44,7 @@ rules:
       - secrets
       - services
       - persistentvolumeclaims
+      - pods
     verbs: ["*"]
 
 ---
