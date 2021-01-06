@@ -102,7 +102,7 @@
           wait_timeout: "{{ item.wait_timeout | default(180) }}"
           name: "{{ item.name }}"
           namespace: "{{ item.namespace | default('default') }}"
-          memory: "{{ item.memory | default('500Mib') }}"
+          memory: "{{ item.memory | default('500MB') }}"
           cpu_cores: "{{ item.cpu_cores | default(omit) }}"
           machine_type: "{{ item.machine_type | default('q35') }}"
 
