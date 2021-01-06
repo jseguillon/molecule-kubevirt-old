@@ -143,7 +143,7 @@
                 containerDisk:
                   image: "{{ item.image | default('jseguillon/kubevirt-images:centos-7-x86_64-genericcloud-2009') }}" 
                   # path: "{{ item.path | default(omit) }}"
-                  imagePullPolicy: "Never"
+                  imagePullPolicy: "IfNotPresent"
               disk:
                 bus: virtio
           # TODO : deal with simple import (no cache)
