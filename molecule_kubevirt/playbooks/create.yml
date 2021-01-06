@@ -174,7 +174,7 @@
     
     - name: debug wait check status
       shell: 
-        cmd: "curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.20.0/bin/linux/amd64/kubectl; chmod +x ./kubectl; ./kubectl describe vm; kubectl desribe vmi; ./kubectl descibe pod; ./kubectl describe svc; sleep 60" 
+        cmd: "curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.20.0/bin/linux/amd64/kubectl; chmod +x ./kubectl; ./kubectl describe vm; kubectl describe vmi; ./kubectl describe pod; ./kubectl describe svc; sleep 60" 
       with_items: "{{ range(1, 15) | list }}"
 
     - name: debug servers 
