@@ -99,7 +99,7 @@
       community.general.kubevirt_vm:
           state: running
           wait: true
-          wait_timeout: "{{ item.wait_timeout | default(180) }}"
+          wait_timeout: "{{ item.wait_timeout | default(1800) }}"
           name: "{{ item.name }}"
           namespace: "{{ item.namespace | default('default') }}"
           memory: "{{ item.memory | default('1Gi') }}"
@@ -188,6 +188,9 @@
     - name: debug 4
       shell: 
         cmd: "./kubectl get events -A" 
+    - name: debug 5
+      shell: 
+        cmd: "./kubectl logs -l kubevirt.io=virt-launcher" 
 
     - name: debug servers 
       debug:
