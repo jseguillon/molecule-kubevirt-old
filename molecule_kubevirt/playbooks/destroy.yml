@@ -29,6 +29,7 @@
         kind: Service
         name: "{{ item.name }}-ssh"
         namespace: "{{ item.namespace | default('default') }}"
+      with_items: "{{ molecule_yml.platforms }}"
 
     - name: Delete ssh key pair
       file:
