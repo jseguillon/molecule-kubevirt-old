@@ -4,6 +4,10 @@ set -euxo pipefail
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
+sudo systemctl stop apparmor
+sudo systemctl disable apparmor
+
+
 # TODO : check if really needed
 sudo apt install -y qemu qemu-kvm libvirt-daemon libvirt-clients bridge-utils virt-manager libvirt-daemon-system
 sudo systemctl restart libvirtd
