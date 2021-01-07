@@ -1,0 +1,40 @@
+sudo: required
+dist: focal
+
+# branches:
+#   only:
+#   - master
+#   - "/^v[0-9]/"
+
+jobs:
+  include:
+    - stage: Tests
+      name: "Default"
+
+cache:
+  directories:
+  - cache
+
+before_script:
+## FIXME Workaround for https://github.com/kubernetes/kubernetes/issues/61058
+### And https://github.com/LiliC/travis-minikube/blob/e0f26f7b388057f51a0e2558afd5f990e07b6c49/.travis.yml#L11
+- sudo mount --make-rshared /
+### conntrack is required by kube 1.18
+- sudo apt-get update
+- sudo apt-get install -y conntrack
+- curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+- sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+- sudo apt-get update
+- sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
+- chmod +x tools/test-setup.sh && tools/test-setup.sh
+- docker build . --file tools/Dockerfile  -t molecule_kubevirt:latest
+- kind load docker-image molecule_kubevirt:latest
+- ansible-doc -l | grep docker_container
+- kubectl get all --all-namespaces 
+- python3 -m pip install pip
+- python3 -m pip install tox
+
+script:
+- echo "kubectl apply -f tools/test-job.yaml"
+- kubectl apply -f /home/runner/work/molecule-kubevirt/molecule-kubevirt/tools/test-job.yaml && sleep 15
+- kubectl logs -l job-name=molecule -f 
