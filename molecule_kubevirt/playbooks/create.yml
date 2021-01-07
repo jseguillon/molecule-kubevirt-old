@@ -136,8 +136,6 @@
      
       with_items: "{{ molecule_yml.platforms  }}"
       register: server
-      async: 200
-      poll: 5
 
     # TODO : NodePort support
     - name: Create ssh service
