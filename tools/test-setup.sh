@@ -11,7 +11,7 @@ chmod +x ./kind
 
 # TODO : check if really needed
 sudo apt install -y qemu qemu-kvm libvirt-daemon libvirt-clients bridge-utils virt-manager
-
+sudo systemctl start libvirtd
 
 # Kube-virt Operator and CRDs
 export VERSION=v0.33.0
