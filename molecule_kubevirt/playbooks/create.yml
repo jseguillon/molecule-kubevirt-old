@@ -43,21 +43,6 @@
                     - {{ lookup('file', molecule_ephemeral_directory + '/identity_'+ item.name + '.pub' ) }}
       with_items: "{{ molecule_yml.platforms  }}"
 
-    - name: Create a PVC and import data from an external source
-      community.general.kubevirt_pvc:
-        state: present
-        name: "{{ item.cache_once_url | default('https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud-2009.qcow2') | basename | replace('.','-') | replace('_','-') | lower }}"
-        namespace: "{{ item.cache_once_namespace | default('default') }}"
-        size: "{{ item.cache_once_size | default('10Gi') }}"
-        wait: true
-        wait_timeout: "{{ item.cache_once_wait_timeout | default(1800) }}"
-        access_modes:
-          - ReadWriteOnce
-        cdi_source:
-          http:
-            url: "{{ item.cache_once_url | default('https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud-2009.qcow2') }}"
-          #  TODO :If the URL points to a tar.gz containing the disk image, uncomment the line below:
-          #content_type: archive
 
     # - name: Create a PVC as a clone for same url
     #   community.general.kubevirt_pvc:
