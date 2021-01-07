@@ -10,7 +10,8 @@ chmod +x ./kind
 ./kind create cluster
 
 # TODO : check if really needed
-sudo apt-get install -y qemu
+sudo apt install -y qemu qemu-kvm libvirt-daemon libvirt-clients bridge-utils virt-manager
+
 
 # Kube-virt Operator and CRDs
 export VERSION=v0.33.0
