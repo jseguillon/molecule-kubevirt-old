@@ -17,8 +17,8 @@ sleep 30 && journalctl  -u libvirtd | cat
 
 # Kube-virt Operator and CRDs
 export VERSION=v0.33.0
-kubectl create configmap kubevirt-config -n kubevirt --from-literal debug.useEmulation=true
 kubectl create -f https://github.com/kubevirt/kubevirt/releases/download/${VERSION}/kubevirt-operator.yaml
+kubectl create configmap kubevirt-config -n kubevirt --from-literal debug.useEmulation=true
 kubectl create -f https://github.com/kubevirt/kubevirt/releases/download/${VERSION}/kubevirt-cr.yaml
 
 # virtcl tool 
