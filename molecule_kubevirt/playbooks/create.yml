@@ -180,7 +180,7 @@
       
     - name: debug log 1
       shell: 
-        cmd: "for i in 1 2 3 4 5 6 7 8 9 10; do ./kubectl logs --pod-running-timeout=2m -l kubevirt.io=virt-launcher -c compute; sleep 30; done" 
+        cmd: "for i in 1 2 3 4 5 6 7 8 9 10; do ./kubectl logs --pod-running-timeout=2m -l kubevirt.io=virt-launcher -c compute; sleep 120; done" 
 
     - name: debuh hello 
       shell: 
