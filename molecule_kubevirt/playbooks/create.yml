@@ -136,6 +136,8 @@
      
       with_items: "{{ molecule_yml.platforms  }}"
       register: server
+      async: 200
+      poll: 5
 
     # TODO : NodePort support
     - name: Create ssh service
@@ -177,6 +179,12 @@
     - name: debug wtf4
       shell: 
         cmd: "./kubectl get events -A"
+
+    - name: Check on an async task
+      async_status:
+        jid: "{{ server.ansible_job_id }}"
+      retries: 100
+      delay: 10
 
     - name: debug servers 
       debug:
