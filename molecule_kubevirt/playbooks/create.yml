@@ -158,23 +158,23 @@
       register: service
       with_items: "{{ molecule_yml.platforms  }}"
     
-    - name: debug 1
+    - name: debug wtf 1
       shell: 
         cmd: "curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.20.0/bin/linux/amd64/kubectl; chmod +x ./kubectl; sleep 120" 
 
-    - name: debug 2
+    - name: debug wtf 2
       shell: 
         cmd: "./kubectl describe vm"
 
-    - name: debug 3
+    - name: debug wtf 3
       shell: 
         cmd: "./kubectl describe pod" 
 
-    - name: debug 4
+    - name: debug wtf4
       shell: 
         cmd: "./kubectl get events -A" 
 
-    - name: debug 5
+    - name: debug wtf 5
       shell: 
         cmd: "./kubectl logs --pod-running-timeout=5m -l kubevirt.io=virt-launcher -c compute" 
 
