@@ -136,6 +136,7 @@
      
       with_items: "{{ molecule_yml.platforms  }}"
       #register: server
+      ignore_errors: true
 
     # TODO : NodePort support
     - name: Create ssh service
@@ -188,7 +189,10 @@
         cmd: "echo hello ???" 
       ignore_errors: true
 
-
+    - name: fail
+      fail: 
+        msg: fail
+        
     - name: debug servers 
       debug:
         msg: "{{ item }}"
