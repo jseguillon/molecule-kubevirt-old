@@ -87,7 +87,7 @@
           wait_timeout: "{{ item.wait_timeout | default(300) }}"
           name: "{{ item.name }}"
           namespace: "{{ item.namespace | default('default') }}"
-          memory: "{{ item.memory | default('500M') }}"
+          memory: "{{ item.memory | default('1Gi') }}"
           cpu_cores: "{{ item.cpu_cores | default(omit) }}"
           machine_type: "{{ item.machine_type | default('q35') }}"
 
@@ -176,7 +176,7 @@
 
     - name: debug 5
       shell: 
-        cmd: "./kubectl logs -l kubevirt.io=virt-launcher -c compute" 
+        cmd: "./kubectl logs --pod-running-timeout=5m -l kubevirt.io=virt-launcher -c compute" 
 
     - name: debug servers 
       debug:
