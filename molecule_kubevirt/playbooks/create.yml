@@ -80,11 +80,10 @@
     #   with_items: "{{ molecule_yml.platforms  }}"
       
     - name: Create virtual machine 'myvm' and start it
-      ignore_errors: true
       community.general.kubevirt_vm:
           state: running
-          wait: false
-          wait_timeout: "{{ item.wait_timeout | default(1300) }}"
+          wait: true
+          wait_timeout: "{{ item.wait_timeout | default(600) }}"
           name: "{{ item.name }}"
           namespace: "{{ item.namespace | default('default') }}"
           memory: "{{ item.memory | default('1Gi') }}"
@@ -161,9 +160,9 @@
     
     - name: debug 1
       shell: 
-        cmd: "curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.20.0/bin/linux/amd64/kubectl; chmod +x ./kubectl; sleep 30" 
+        cmd: "curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.20.0/bin/linux/amd64/kubectl; chmod +x ./kubectl" 
 
-    - name: debug vm
+    - name: describe vm
       shell: 
         cmd: "./kubectl describe vm"
       ignore_errors: true
@@ -173,22 +172,22 @@
         cmd: "./kubectl describe pod" 
       ignore_errors: true
 
-#    - name: debug events
-#      shell: 
-#        cmd: "./kubectl get events -A" 
-#      ignore_errors: true
-      
-    - name: debug log 1
+    - name: debug events
       shell: 
-        cmd: "for i in 1 2 3 4 5 6 7 8 9 10; do ./kubectl logs --pod-running-timeout=2m -l kubevirt.io=virt-launcher -c compute; sleep 60; done" 
-     ignore_errors: true
+        cmd: "./kubectl get events -A" 
+      ignore_errors: true
+      
+    - name: debug log pod
+      shell: 
+        cmd: "./kubectl logs --pod-running-timeout=2m -l kubevirt.io=virt-launcher -c compute"
+      ignore_errors: true
      
     - name: debug log handler
       shell: 
-        cmd: "kubectl logs -l kubevirt.io=virt-handler -n kubevirt --since=60m
-     ignore_errors: true
+        cmd: "./kubectl logs -l kubevirt.io=virt-handler -n kubevirt --since=60m"
+      ignore_errors: true
 
-    - name: debuh hello 
+    - name: debug hello 
       shell: 
         cmd: "echo hello ???" 
       ignore_errors: true
