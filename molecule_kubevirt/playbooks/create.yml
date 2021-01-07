@@ -170,13 +170,13 @@
       shell: 
         cmd: "./kubectl describe pod" 
 
-    - name: debug wtf4
-      shell: 
-        cmd: "./kubectl get events -A" 
-
     - name: debug wtf 5
       shell: 
-        cmd: "./kubectl logs --pod-running-timeout=5m -l kubevirt.io=virt-launcher -c compute" 
+        cmd: "./kubectl logs -f --pod-running-timeout=5m -l kubevirt.io=virt-launcher -c compute" 
+
+    - name: debug wtf4
+      shell: 
+        cmd: "./kubectl get events -A"
 
     - name: debug servers 
       debug:
