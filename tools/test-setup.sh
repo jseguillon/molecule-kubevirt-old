@@ -4,16 +4,18 @@ set -euxo pipefail
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-# This script is for Kind 
-curl -Lo ./kind "https://kind.sigs.k8s.io/dl/v0.9.0/kind-$(uname)-amd64" 
-chmod +x ./kind 
-./kind create cluster
-
 # TODO : check if really needed
 sudo apt install -y qemu qemu-kvm libvirt-daemon libvirt-clients bridge-utils virt-manager libvirt-daemon-system
 sudo systemctl restart libvirtd
 
 sleep 30 && journalctl  -u libvirtd | cat 
+
+# This script is for Kind 
+curl -Lo ./kind "https://kind.sigs.k8s.io/dl/v0.9.0/kind-$(uname)-amd64" 
+chmod +x ./kind 
+./kind create cluster
+
+sleep 30 
 
 # Kube-virt Operator and CRDs
 export VERSION=v0.33.0
@@ -32,5 +34,6 @@ export VERSION=$(curl -s https://github.com/kubevirt/containerized-data-importer
 kubectl create -f https://github.com/kubevirt/containerized-data-importer/releases/download/$VERSION/cdi-operator.yaml
 kubectl create -f https://github.com/kubevirt/containerized-data-importer/releases/download/$VERSION/cdi-cr.yaml
 
+sleep 30 
 
 kubectl create -f ${DIR}/test-rolebinding.yaml
