@@ -83,8 +83,8 @@
       ignore_errors: true
       community.general.kubevirt_vm:
           state: running
-          wait: false
-          wait_timeout: "{{ item.wait_timeout | default(300) }}"
+          wait: true
+          wait_timeout: "{{ item.wait_timeout | default(1800) }}"
           name: "{{ item.name }}"
           namespace: "{{ item.namespace | default('default') }}"
           memory: "{{ item.memory | default('1Gi') }}"
@@ -157,46 +157,7 @@
             type: ClusterIP   
       register: service
       with_items: "{{ molecule_yml.platforms  }}"
-    
-    - name: debug 1
-      shell: 
-        cmd: "curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.20.0/bin/linux/amd64/kubectl; chmod +x ./kubectl; sleep 30" 
-
-    - name: debug vm
-      shell: 
-        cmd: "./kubectl describe vm"
-      ignore_errors: true
-      
-    - name: debug describe pod
-      shell: 
-        cmd: "./kubectl describe pod" 
-      ignore_errors: true
-
-    - name: debug events
-      shell: 
-        cmd: "./kubectl get events -A" 
-      ignore_errors: true
-      
-    - name: debug log 1
-      shell: 
-        cmd: "./kubectl logs --pod-running-timeout=2m -l kubevirt.io=virt-launcher -c compute" 
-      ignore_errors: true
-
-    - name:  debug log 2
-      shell: 
-        cmd: "sleep 15; ./kubectl logs --pod-running-timeout=2m -l kubevirt.io=virt-launcher -c compute" 
-      ignore_errors: true
-
-    - name: debuh hello 
-      shell: 
-        cmd: "echo hello ???" 
-      ignore_errors: true
-      
-    - name: Fail
-      fail:
-        msg: "{{ server }}"
-
-
+   
     - name: debug servers 
       debug:
         msg: "{{ item }}"
