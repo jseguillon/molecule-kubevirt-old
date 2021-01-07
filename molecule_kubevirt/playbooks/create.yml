@@ -173,16 +173,14 @@
         cmd: "./kubectl describe pod" 
       ignore_errors: true
 
-    - name: debug events
-      shell: 
-        cmd: "./kubectl get events -A" 
-      ignore_errors: true
+#    - name: debug events
+#      shell: 
+#        cmd: "./kubectl get events -A" 
+#      ignore_errors: true
       
     - name: debug log 1
       shell: 
         cmd: "for i in 1 2 3 4 5 6 7 8 9 10; do ./kubectl logs --pod-running-timeout=2m -l kubevirt.io=virt-launcher -c compute; sleep 30; done" 
-      ignore_errors: true
-
 
     - name: debuh hello 
       shell: 
