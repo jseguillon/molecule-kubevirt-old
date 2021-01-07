@@ -164,37 +164,40 @@
       shell: 
         cmd: "curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.20.0/bin/linux/amd64/kubectl; chmod +x ./kubectl; sleep 30" 
 
-    - name: debug 2
+    - name: debug vm
       shell: 
         cmd: "./kubectl describe vm"
       ignore_errors: true
       
-    - name: debug 3
+    - name: debug describe pod
       shell: 
         cmd: "./kubectl describe pod" 
       ignore_errors: true
 
-    - name: debug 4
+    - name: debug events
       shell: 
         cmd: "./kubectl get events -A" 
       ignore_errors: true
       
-    - name: debug 5
+    - name: debug log 1
       shell: 
-        cmd: "./kubectl logs -f --pod-running-timeout=5m -l kubevirt.io=virt-launcher -c compute" 
+        cmd: "./kubectl logs --pod-running-timeout=2m -l kubevirt.io=virt-launcher -c compute" 
       ignore_errors: true
 
-    - name: debug 5
+    - name:  debug log 2
       shell: 
-        cmd: "sleep 15; ./kubectl logs -f --pod-running-timeout=5m -l kubevirt.io=virt-launcher -c compute" 
+        cmd: "sleep 15; ./kubectl logs --pod-running-timeout=2m -l kubevirt.io=virt-launcher -c compute" 
       ignore_errors: true
 
+    - name: debuh hello 
+      shell: 
+        cmd: "echo hello ???" 
+      ignore_errors: true
+      
+    - name: Fail
+      fail:
+        msg: "{{ server }}"
 
-    - name: Check on an async task
-      async_status:
-        jid: "{{ server.ansible_job_id }}"
-      retries: 100
-      delay: 10
 
     - name: debug servers 
       debug:
