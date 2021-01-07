@@ -160,25 +160,35 @@
       register: service
       with_items: "{{ molecule_yml.platforms  }}"
     
-    - name: debug wtf 1
+    - name: debug 1
       shell: 
-        cmd: "curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.20.0/bin/linux/amd64/kubectl; chmod +x ./kubectl; sleep 120" 
+        cmd: "curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.20.0/bin/linux/amd64/kubectl; chmod +x ./kubectl; sleep 30" 
 
-    - name: debug wtf 2
+    - name: debug 2
       shell: 
         cmd: "./kubectl describe vm"
-
-    - name: debug wtf 3
+      ignore_errors: true
+      
+    - name: debug 3
       shell: 
         cmd: "./kubectl describe pod" 
+      ignore_errors: true
 
-    - name: debug wtf 5
+    - name: debug 4
+      shell: 
+        cmd: "./kubectl get events -A" 
+      ignore_errors: true
+      
+    - name: debug 5
       shell: 
         cmd: "./kubectl logs -f --pod-running-timeout=5m -l kubevirt.io=virt-launcher -c compute" 
+      ignore_errors: true
 
-    - name: debug wtf4
+    - name: debug 5
       shell: 
-        cmd: "./kubectl get events -A"
+        cmd: "sleep 15; ./kubectl logs -f --pod-running-timeout=5m -l kubevirt.io=virt-launcher -c compute" 
+      ignore_errors: true
+
 
     - name: Check on an async task
       async_status:
