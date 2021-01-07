@@ -10,8 +10,10 @@ chmod +x ./kind
 ./kind create cluster
 
 # TODO : check if really needed
-sudo apt install -y qemu qemu-kvm libvirt-daemon libvirt-clients bridge-utils virt-manager
-sudo systemctl start libvirtd
+sudo apt install -y qemu qemu-kvm libvirt-daemon libvirt-clients bridge-utils virt-manager libvirt-daemon-system
+sudo systemctl restart libvirtd
+
+sleep 30 && journalctl  -u libvirtd | cat 
 
 # Kube-virt Operator and CRDs
 export VERSION=v0.33.0
