@@ -45,7 +45,7 @@ rules:
       - services
       - persistentvolumeclaims
       - pods
-      - pods/logs
+      - pods/log
       - events
     verbs: ["*"]
 
