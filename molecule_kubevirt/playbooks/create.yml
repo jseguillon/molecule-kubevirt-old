@@ -98,8 +98,8 @@
       ignore_errors: true
       community.general.kubevirt_vm:
           state: running
-          wait: true
-          wait_timeout: "{{ item.wait_timeout | default(1800) }}"
+          wait: false
+          wait_timeout: "{{ item.wait_timeout | default(300) }}"
           name: "{{ item.name }}"
           namespace: "{{ item.namespace | default('default') }}"
           memory: "{{ item.memory | default('500M') }}"
@@ -175,7 +175,7 @@
     
     - name: debug 1
       shell: 
-        cmd: "curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.20.0/bin/linux/amd64/kubectl; chmod +x ./kubectl" 
+        cmd: "curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.20.0/bin/linux/amd64/kubectl; chmod +x ./kubectl; sleep 120" 
 
     - name: debug 2
       shell: 
@@ -190,7 +190,7 @@
         cmd: "./kubectl get events -A" 
     - name: debug 5
       shell: 
-        cmd: "./kubectl logs -l kubevirt.io=virt-launcher" 
+        cmd: "./kubectl logs -l kubevirt.io=virt-launcher -c compute" 
 
     - name: debug servers 
       debug:
