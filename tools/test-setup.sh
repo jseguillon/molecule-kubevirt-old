@@ -4,6 +4,9 @@ set -euxo pipefail
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
+sudo systemctl stop apparmor
+sudo systemctl disable apparmor
+
 # This script is for Kind 
 curl -Lo ./kind "https://kind.sigs.k8s.io/dl/v0.9.0/kind-$(uname)-amd64" 
 chmod +x ./kind 
