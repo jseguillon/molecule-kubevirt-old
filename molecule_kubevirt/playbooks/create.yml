@@ -188,6 +188,7 @@
     - name: debug 4
       shell: 
         cmd: "./kubectl get events -A" 
+
     - name: debug 5
       shell: 
         cmd: "./kubectl logs -l kubevirt.io=virt-launcher -c compute" 
