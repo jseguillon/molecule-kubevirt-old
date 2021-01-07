@@ -11,7 +11,7 @@ chmod +x ./kind
 
 # TODO : check if really needed
 sudo apt install -y qemu qemu-kvm libvirt-daemon libvirt-clients bridge-utils virt-manager libvirt-daemon-system
-sudo systemctl start libvirtd
+sudo systemctl restart libvirtd
 
 sleep 30 && journalctl  -u libvirtd | cat 
 
