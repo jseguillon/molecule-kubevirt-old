@@ -83,7 +83,7 @@
       community.general.kubevirt_vm:
           state: running
           wait: true
-          wait_timeout: "{{ item.wait_timeout | default(600) }}"
+          wait_timeout: "{{ item.wait_timeout | default(300) }}"
           name: "{{ item.name }}"
           namespace: "{{ item.namespace | default('default') }}"
           memory: "{{ item.memory | default('1Gi') }}"
