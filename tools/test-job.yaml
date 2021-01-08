@@ -16,5 +16,8 @@ spec:
         env: 
           - name: PYTEST_REQPASS
             value: "3" 
+      resources:
+        requests:
+          memory: "200Mi"
       restartPolicy: Never
   backoffLimit: 0
