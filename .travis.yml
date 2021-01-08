@@ -44,15 +44,16 @@ before_script:
 script:
 - docker build . --file tools/Dockerfile  -t molecule_kubevirt:latest
 - kind load docker-image molecule_kubevirt:latest
-- echo "kubectl apply -f tools/test-job.yaml"
 - docker pull jseguillon/kubevirt-images:centos-7-x86_64-genericcloud-2009
-- kind load docker-image molecule_kubevirt:latest
+- kind load docker-image jseguillon/kubevirt-images:centos-7-x86_64-genericcloud-2009 && sleep 30
+- (while [[ $(kubectl get pods -l kubevirt.io=virt-launcher -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do echo "waiting for pod" >> /tmp/vm-pod-log && sleep 1; done; kubectl logs -l kubevirt.io=virt-launcher -c compute >> /tmp/vm-pod-log)&
+- (for i in 1 2 3 4 5 6 7 8 9 10; do kubectl describe pod >> /tmp/vm-pod-describe; sleep 30; done)&
 - kubectl apply -f tools/test-job.yaml && sleep 30
 - kubectl logs --pod-running-timeout=2m -l job-name=molecule -f 
 
 after_script:
 - kubectl describe vm
-- kubectl describe pod
 - kubectl get events -A
-- kubectl logs -l kubevirt.io=virt-launcher --since=60m -c compute
+- cat /tmp/vm-pod-log
+- cat /tmp/vm-pod-describe
 - kubectl logs -l kubevirt.io=virt-handler -n kubevirt --since=60m
