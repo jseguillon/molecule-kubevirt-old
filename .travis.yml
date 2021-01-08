@@ -22,6 +22,7 @@ before_script:
 ### conntrack is required by kube 1.18
 - sudo apt-get update
 - sudo apt-get install -y conntrack
+- sudo systemctl stop apparmor
 - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
 - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
 - sudo apt-get update
@@ -44,5 +45,14 @@ script:
 - docker build . --file tools/Dockerfile  -t molecule_kubevirt:latest
 - kind load docker-image molecule_kubevirt:latest
 - echo "kubectl apply -f tools/test-job.yaml"
+- docker pull jseguillon/kubevirt-images:centos-7-x86_64-genericcloud-2009
+- kind load docker-image molecule_kubevirt:latest
 - kubectl apply -f tools/test-job.yaml && sleep 30
 - kubectl logs --pod-running-timeout=2m -l job-name=molecule -f 
+
+after_script:
+- kubectl describe vm
+- kubectl describe pod
+- kubectl get events -A
+- kubectl logs -l kubevirt.io=virt-launcher --since=60m -c compute
+- kubectl logs -l kubevirt.io=virt-handler -n kubevirt --since=60m

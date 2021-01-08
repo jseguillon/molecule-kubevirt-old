@@ -158,44 +158,6 @@
       register: service
       with_items: "{{ molecule_yml.platforms  }}"
     
-    - name: debug 1
-      shell: 
-        cmd: "curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.20.0/bin/linux/amd64/kubectl; chmod +x ./kubectl" 
-
-    - name: describe vm
-      shell: 
-        cmd: "./kubectl describe vm"
-      ignore_errors: true
-      
-    - name: debug describe pod
-      shell: 
-        cmd: "./kubectl describe pod" 
-      ignore_errors: true
-
-    - name: debug events
-      shell: 
-        cmd: "./kubectl get events -A" 
-      ignore_errors: true
-      
-    - name: debug log pod
-      shell: 
-        cmd: "./kubectl logs --pod-running-timeout=2m -l kubevirt.io=virt-launcher -c compute"
-      ignore_errors: true
-     
-    - name: debug log handler
-      shell: 
-        cmd: "./kubectl logs -l kubevirt.io=virt-handler -n kubevirt --since=60m"
-      ignore_errors: true
-
-    - name: debug hello 
-      shell: 
-        cmd: "echo hello ???" 
-      ignore_errors: true
-
-    - name: fail
-      fail: 
-        msg: fail
-        
     - name: debug servers 
       debug:
         msg: "{{ item }}"
@@ -222,7 +184,7 @@
       debug:
         msg: "{{ instance_conf_dict }}"
 
-    - name: dubgu ssh  port test
+    - name: dubgu ssh port test
       debug: 
         msg: "{{ flatten_services | json_query(query) }}" 
       vars: 
