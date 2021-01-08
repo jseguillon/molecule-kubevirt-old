@@ -134,8 +134,7 @@
           # TODO : deal with simple import (no cache)
      
       with_items: "{{ molecule_yml.platforms  }}"
-      #register: server
-      ignore_errors: true
+      register: server
 
     # TODO : NodePort support
     - name: Create ssh service
