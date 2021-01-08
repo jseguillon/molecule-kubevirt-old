@@ -44,5 +44,5 @@ script:
 - docker build . --file tools/Dockerfile  -t molecule_kubevirt:latest
 - kind load docker-image molecule_kubevirt:latest
 - echo "kubectl apply -f tools/test-job.yaml"
-- kubectl apply -f tools/test-job.yaml
+- kubectl apply -f tools/test-job.yaml && sleep 30
 - kubectl logs --pod-running-timeout=2m -l job-name=molecule -f 
