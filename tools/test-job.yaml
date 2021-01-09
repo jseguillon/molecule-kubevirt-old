@@ -15,6 +15,6 @@ spec:
         args: ["tox -e py37 -c /opt/molecule_kubevirt/tox.ini"]
         env: 
           - name: PYTEST_REQPASS
-            value: "3" 
+            value: "2" 
       restartPolicy: Never
   backoffLimit: 0
