@@ -50,6 +50,15 @@ jobs:
           sudo mkdir -p /usr/libexec/cni
           sudo tar -C /usr/libexec/cni -xvzf /tmp/cni.tgz
 
+      - name: Tweak Ubuntu apparmor
+        run: |
+          sudo cat /etc/apparmor.d/usr.sbin.libvirtd
+          tweak_qemu_apprarmor="$(head -n -1 /etc/apparmor.d/usr.sbin.libvirtd; echo "  /usr/libexec/qemu-kvm rmix,"; tail -1 /etc/apparmor.d/usr.sbin.libvirtd)"
+          echo "$tweak_qemu_apprarmor"
+          echo "$tweak_qemu_apprarmor" | sudo dd of=/etc/apparmor.d/usr.sbin.libvirtd 
+          sudo cat /etc/apparmor.d/usr.sbin.libvirtd 
+          sudo systemctl reload apparmor.service
+
       - name: Install kubectl
         run: |
           curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.20.0/bin/linux/amd64/kubectl; chmod +x ./kubectl
@@ -78,10 +87,7 @@ jobs:
           sudo kubectl get pods -A
 
       - name: Install kubevirt
-        run: |
-          sudo bash -c '(head -n -2 /etc/apparmor.d/usr.sbin.libvirtd; echo "  /usr/libexec/qemu-kvm rmix,\n"; tail -2 /etc/apparmor.d/usr.sbin.libvirtd) > /etc/apparmor.d/usr.sbin.libvirtd'
-          sudo cat /etc/apparmor.d/usr.sbin.libvirtd
-          sudo systemctl reload apparmor.service
+        run: |          
           sudo kubectl create -f https://github.com/kubevirt/kubevirt/releases/download/v0.36.0/kubevirt-operator.yaml
           sudo kubectl create configmap kubevirt-config -n kubevirt --from-literal debug.useEmulation=true
           sudo kubectl create -f https://github.com/kubevirt/kubevirt/releases/download/v0.36.0/kubevirt-cr.yaml
@@ -104,13 +110,17 @@ jobs:
           tar xf kail.tar.gz
           sudo install kail /usr/local/bin
 
+      - name: Start async describe plus kail
+        run: | 
+          (for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do sudo kubectl describe vm,vmi,pod >> /tmp/describes.txt; sleep 20; done)  &
+          (sudo kail -n default --log-file /tmp/kail.log) &
+        continue-on-error: true
+
       - name: Start test job
         run: | 
           sudo kubectl create -f tools/test-rolebinding.yaml
           sudo kubectl apply -f tools/test-job.yaml
           sudo kubectl wait --for=condition=ready pods -l job-name=molecule --namespace default
-          (kail -n default --log-file /tmp/kail.log) &
-          (for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do; sudo kubectl describe vm,vmi,pod >> /tmp/describes.txt; sleep 20; done)  &
           sudo kubectl logs -l job-name=molecule -f 
 
       - name: Export logs
@@ -118,8 +128,9 @@ jobs:
         run: |
           sudo kubectl get events
           mkdir -p /tmp/kind/logs
-          cp /tmp/kail.log /tmp/kind/logs
-          cp /tmp/describes.txt /tmp/kind/logs
+          cp /tmp/kail.log /tmp/kind/logs || true
+          cp /tmp/describes.txt /tmp/kind/logs || true
+          sudo dmesg > /tmp/kind/logs/dmesg
           sudo kind export logs /tmp/kind/logs
           sudo journalctl | cat > /tmp/kind/logs/journalctl.txt
           sudo chown -R $USER:$USER /tmp/kind/logs
