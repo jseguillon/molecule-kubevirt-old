@@ -96,9 +96,10 @@ jobs:
         run: |
           # wait network is ready
           sudo kubectl wait --for=condition=ready pods --namespace=kubevirt -l kubevirt.io=virt-operator 
-          sudo kubectl wait --for=condition=ready pods --namespace=kubevirt -l kubevirt.io=virt-api 
-          sudo kubectl wait --for=condition=ready pods --namespace=kubevirt -l kubevirt.io=virt-controller
-          sudo kubectl wait --for=condition=ready pods --namespace=kubevirt -l kubevirt.io=virt-handler
+          sleep 30
+          sudo kubectl wait --for=condition=ready pods --namespace=kubevirt -l kubevirt.io=virt-api || true
+          sudo kubectl wait --for=condition=ready pods --namespace=kubevirt -l kubevirt.io=virt-controller || true
+          sudo kubectl wait --for=condition=ready pods --namespace=kubevirt -l kubevirt.io=virt-handler || true
           sudo kubectl get nodes -o wide
           sudo kubectl get pods -A
 
@@ -116,7 +117,6 @@ jobs:
       - name: Start async describe plus kail
         run: | 
           (for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do sudo kubectl describe vm,vmi,pod >> /tmp/describes.txt; sleep 20; done)  &
-          (sudo kail -n default --log-file /tmp/kail.log) &
         continue-on-error: true
 
       - name: Start test job
@@ -124,7 +124,7 @@ jobs:
           sudo kubectl create -f tools/test-rolebinding.yaml
           sudo kubectl apply -f tools/test-job.yaml
           sudo kubectl wait --for=condition=ready pods -l job-name=molecule --namespace default
-          sudo kubectl logs -l job-name=molecule -f 
+          sudo kail -n default --log-file /tmp/kail.log & sudo kubectl logs -l job-name=molecule -f 
 
       - name: Export logs
         if: always()
