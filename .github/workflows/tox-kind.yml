@@ -126,7 +126,7 @@ jobs:
         run: |
           mkdir -p /tmp/kind/logs
           sudo kubectl get events > /tmp/kind/logs/events.txt || true
-          sudo kubectl describe jobs > /tmp/kind/logs/jobs.txt || true
+          sleep 69;sudo kubectl describe jobs > /tmp/kind/logs/jobs.txt || true
           cp /tmp/kail.log /tmp/kind/logs || true
           cp /tmp/describes.txt /tmp/kind/logs || true
           sudo dmesg > /tmp/kind/logs/dmesg.txt
