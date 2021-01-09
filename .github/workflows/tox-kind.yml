@@ -96,6 +96,9 @@ jobs:
         run: |
           # wait network is ready
           sudo kubectl wait --for=condition=ready pods --namespace=kubevirt -l kubevirt.io=virt-operator 
+          sudo kubectl wait --for=condition=ready pods --namespace=kubevirt -l kubevirt.io=virt-api 
+          sudo kubectl wait --for=condition=ready pods --namespace=kubevirt -l kubevirt.io=virt-controller
+          sudo kubectl wait --for=condition=ready pods --namespace=kubevirt -l kubevirt.io=virt-handler
           sudo kubectl get nodes -o wide
           sudo kubectl get pods -A
 
