@@ -92,17 +92,6 @@ jobs:
           sudo kubectl create configmap kubevirt-config -n kubevirt --from-literal debug.useEmulation=true
           sudo kubectl create -f https://github.com/kubevirt/kubevirt/releases/download/v0.36.0/kubevirt-cr.yaml
 
-      - name: Get Kubevirt status
-        run: |
-          # wait network is ready
-          sudo kubectl wait --for=condition=ready pods --namespace=kubevirt -l kubevirt.io=virt-operator 
-          sleep 30
-          sudo kubectl wait --for=condition=ready pods --namespace=kubevirt -l kubevirt.io=virt-api || true
-          sudo kubectl wait --for=condition=ready pods --namespace=kubevirt -l kubevirt.io=virt-controller || true
-          sudo kubectl wait --for=condition=ready pods --namespace=kubevirt -l kubevirt.io=virt-handler || true
-          sudo kubectl get nodes -o wide
-          sudo kubectl get pods -A
-
       - name: Build molecule test container and push to kind
         run: |
           docker build . --file tools/Dockerfile  -t molecule_kubevirt:latest
@@ -114,6 +103,17 @@ jobs:
           tar xf kail.tar.gz
           sudo install kail /usr/local/bin
 
+      - name: Get Kubevirt status
+        run: |
+          # wait network is ready
+          sudo kubectl wait --for=condition=ready pods --namespace=kubevirt -l kubevirt.io=virt-operator 
+          sleep 30
+          sudo kubectl wait --for=condition=ready pods --namespace=kubevirt -l kubevirt.io=virt-api || true
+          sudo kubectl wait --for=condition=ready pods --namespace=kubevirt -l kubevirt.io=virt-controller || true
+          sudo kubectl wait --for=condition=ready pods --namespace=kubevirt -l kubevirt.io=virt-handler || true
+          sudo kubectl get nodes -o wide
+          sudo kubectl get pods -A
+
       - name: Start test job
         run: | 
           sudo kubectl create -f tools/test-rolebinding.yaml
@@ -124,8 +124,8 @@ jobs:
       - name: Export logs
         if: always()
         run: |
-          sudo kubectl get events
           mkdir -p /tmp/kind/logs
+          sudo kubectl get events > /tmp/kind/logs/events.txt || true
           cp /tmp/kail.log /tmp/kind/logs || true
           cp /tmp/describes.txt /tmp/kind/logs || true
           sudo dmesg > /tmp/kind/logs/dmesg.txt
