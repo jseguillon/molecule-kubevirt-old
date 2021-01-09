@@ -119,13 +119,14 @@ jobs:
           sudo kubectl create -f tools/test-rolebinding.yaml
           sudo kubectl apply -f tools/test-job.yaml
           sudo kubectl wait --for=condition=ready pods -l job-name=molecule --namespace default
-          sudo kail -n default 2>&1 | tee /tmp/kail.log & sudo kubectl logs -l job-name=molecule -f 
+          sudo kail -n default 2>&1 > /tmp/kail.log & sudo kubectl logs -l job-name=molecule -f 
 
       - name: Export logs
         if: always()
         run: |
           mkdir -p /tmp/kind/logs
           sudo kubectl get events > /tmp/kind/logs/events.txt || true
+          sudo kubectl describe jobs > /tmp/kind/logs/jobs.txt || true
           cp /tmp/kail.log /tmp/kind/logs || true
           cp /tmp/describes.txt /tmp/kind/logs || true
           sudo dmesg > /tmp/kind/logs/dmesg.txt
