@@ -94,7 +94,6 @@ jobs:
 
       - name: Install virtcl
         run: |          
-          sudo # virtcl tool 
           export ARCH=linux-amd64
           curl -L -o virtctl https://github.com/kubevirt/kubevirt/releases/download/v0.36.0/virtctl-v0.36.0-${ARCH}
           chmod +x virtctl
@@ -133,11 +132,11 @@ jobs:
         run: | 
           # Wait for Job Pod to start
           sudo kubectl wait --for=condition=ready pods -l job-name=molecule --namespace default
-          {sudo virtctl console instance | tee /tmp/virtcl.txt || true } &
+          ( sudo virtctl console instance | tee /tmp/virtcl.txt || true ) &
           # Kail sends any logs from default namespace both to stdout and a log file
-          sudo kail -n default 2>&1 | tee /tmp/kail.log 
+          ( sudo kail -n default 2>&1 | tee /tmp/kail.log || true ) &
           # Wait for molecule Job to delete configmap and notify one Job Pod as ran till the end
-          sudo kubectl wait --for delete  configmap/molecule-job-running
+          sudo kubectl wait --for delete --timeout=15m  configmap/molecule-job-running
           # Exit of github action is the one set by molecule job in config map result
           exit $(sudo kubectl get configmap molecule-result -o "jsonpath={.data['exitCode']}")
 
@@ -145,8 +144,10 @@ jobs:
         if: always()
         run: |
           mkdir -p /tmp/kind/logs
+          sleep 30;
           sudo kubectl get events > /tmp/kind/logs/events.txt || true
-          sleep 69;sudo kubectl describe jobs > /tmp/kind/logs/jobs.txt || true
+          sudo kubectl describe jobs > /tmp/kind/logs/jobs.txt || true
+          sudo kubectl describe cm > /tmp/kind/logs/cm.txt
           cp /tmp/kail.log /tmp/kind/logs || true
           cp /tmp/describes.txt /tmp/kind/logs || true
           sudo dmesg > /tmp/kind/logs/dmesg.txt
