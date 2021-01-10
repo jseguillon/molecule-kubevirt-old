@@ -99,9 +99,13 @@ jobs:
           chmod +x virtctl
           sudo install virtctl /usr/local/bin
 
-      - name: Build molecule test container and push to kind
+      - name: Build molecule test container 
         run: |
           docker build . --file tools/Dockerfile  -t molecule_kubevirt:latest
+          sudo kind load docker-image molecule_kubevirt:latest
+
+      - name: Push molecule test to Kind 
+        run: |
           sudo kind load docker-image molecule_kubevirt:latest
 
       - name: Install kail 
@@ -128,11 +132,12 @@ jobs:
           sudo kubectl create configmap molecule-job-running --from-literal status=Started
           sudo kubectl apply -f tools/test-job.yaml
 
-      - name: Wait for Lob to end and log Pods in default namespace
+      - name: Wait for Job to end and log Pods in default namespace
         run: | 
           # Wait for Job Pod to start
           sudo kubectl wait --for=condition=ready pods -l job-name=molecule --namespace default
-          ( sudo virtctl console instance | tee /tmp/virtcl.txt || true ) &
+          # Send console log to both :(  need async wait pod being created
+          ( sleep 180 && sudo virtctl console instance | tee /tmp/virtcl.txt || true ) &
           # Kail sends any logs from default namespace both to stdout and a log file
           ( sudo kail -n default 2>&1 | tee /tmp/kail.log || true ) &
           # Wait for molecule Job to delete configmap and notify one Job Pod as ran till the end
