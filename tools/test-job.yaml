@@ -12,7 +12,7 @@ spec:
         image: molecule_kubevirt:latest
         imagePullPolicy: IfNotPresent
         command: [ "/bin/bash", "-c", "--" ]
-        args: ["tox -e py37 -c /opt/molecule_kubevirt/tox.ini"]
+        args: ["tox -e py37 -c /opt/molecule_kubevirt/tox.ini; kubectl create configmap molecule-result --from-literal exitCode=$? && kubectl delete configmap molecule-job-running"]
         env: 
           - name: PYTEST_REQPASS
             value: "2" 

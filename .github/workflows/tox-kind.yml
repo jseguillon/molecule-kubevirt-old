@@ -114,12 +114,23 @@ jobs:
           sudo kubectl get nodes -o wide
           sudo kubectl get pods -A
 
-      - name: Start test job
+      - name: Start test Job
         run: | 
           sudo kubectl create -f tools/test-rolebinding.yaml
+          # Create a configmap github will be to be deleted, telling one Pod ended the Job
+          sudo kubectl create configmap molecule-job-running --from-literal status=Started
           sudo kubectl apply -f tools/test-job.yaml
+
+      - name: Wait for Lob to end and log Pods in default namespace
+        run: | 
+          # Wait for Job Pod to start
           sudo kubectl wait --for=condition=ready pods -l job-name=molecule --namespace default
-          sudo kail -n default 2>&1 > /tmp/kail.log & sudo kubectl logs -l job-name=molecule -f 
+          # Kail sends any logs from default namespace both to stdout and a log file
+          sudo kail -n default 2>&1 | tee /tmp/kail.log 
+          # Wait for molecule Job to delete configmap and notify one Job Pod as ran till the end
+          sudo kubectl wait --for delete  configmap/molecule-job-running
+          # Exit of github action is the one set by molecule job in config map result
+          exit $(sudo kubectl get configmap molecule-result -o "jsonpath={.data['exitCode']}")
 
       - name: Export logs
         if: always()
