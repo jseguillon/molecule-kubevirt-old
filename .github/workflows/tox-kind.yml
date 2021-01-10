@@ -92,6 +92,14 @@ jobs:
           sudo kubectl create configmap kubevirt-config -n kubevirt --from-literal debug.useEmulation=true
           sudo kubectl create -f https://github.com/kubevirt/kubevirt/releases/download/v0.36.0/kubevirt-cr.yaml
 
+      - name: Install virtcl
+        run: |          
+          sudo # virtcl tool 
+          export ARCH=linux-amd64
+          curl -L -o virtctl https://github.com/kubevirt/kubevirt/releases/download/v0.36.0/virtctl-v0.36.0-${ARCH}
+          chmod +x virtctl
+          sudo install virtctl /usr/local/bin
+
       - name: Build molecule test container and push to kind
         run: |
           docker build . --file tools/Dockerfile  -t molecule_kubevirt:latest
@@ -125,6 +133,7 @@ jobs:
         run: | 
           # Wait for Job Pod to start
           sudo kubectl wait --for=condition=ready pods -l job-name=molecule --namespace default
+          {sudo virtctl console instance | tee /tmp/virtcl.txt || true } &
           # Kail sends any logs from default namespace both to stdout and a log file
           sudo kail -n default 2>&1 | tee /tmp/kail.log 
           # Wait for molecule Job to delete configmap and notify one Job Pod as ran till the end
