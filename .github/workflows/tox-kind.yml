@@ -89,7 +89,7 @@ jobs:
       - name: Install kubevirt
         run: |          
           sudo kubectl create -f https://github.com/kubevirt/kubevirt/releases/download/v0.36.0/kubevirt-operator.yaml
-          sudo kubectl create configmap kubevirt-config -n kubevirt --from-literal debug.useEmulation=true
+          # sudo kubectl create configmap kubevirt-config -n kubevirt --from-literal debug.useEmulation=true
           sudo kubectl create -f https://github.com/kubevirt/kubevirt/releases/download/v0.36.0/kubevirt-cr.yaml
 
       - name: Install virtcl
