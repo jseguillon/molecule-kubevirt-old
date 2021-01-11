@@ -192,7 +192,7 @@
 
     - name: Wait 300 seconds for port 22 to become open 
       wait_for:
-        timeout: 300
+        timeout: 480
         port: 22
         host: "{{ flatten_services | json_query(query) }}"
         delay: 10
