@@ -47,6 +47,7 @@ rules:
       - pods
       - pods/log
       - events
+      - configmaps
     verbs: ["*"]
 
 ---
