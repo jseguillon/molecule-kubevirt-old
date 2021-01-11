@@ -1,23 +1,57 @@
-name: Docker
+name: tox
 
 on:
-  workflow_dispatch:
+  create:  # is used for publishing to TestPyPI
+    tags:  # any tag regardless of its name, no branches
+      - "**"
+  push:  # only publishes pushes to the main branch to TestPyPI
+    branches:  # any integration branch but not tag
+      - "master"
   pull_request:
+  release:
+    types:
+      - published  # It seems that you can publish directly without creating
+  schedule:
+    - cron: 1 0 * * *  # Run daily at 0:01 UTC
 
 jobs:
-  docker:
-    name: Docker
+  build:
+    name: ${{ matrix.tox_env }}
     runs-on: ubuntu-20.04
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        ipFamily: [ipv4, ipv6]
-        exclude:
-          - ipFamily: ipv6
-    env:
-      JOB_NAME: "kind-${{ matrix.deployment }}-${{ matrix.ipFamily }}"
-      IP_FAMILY: ${{ matrix.ipFamily }}
+        include:
+          - tox_env: lint
+          # - tox_env: docs
+          - tox_env: py36
+            PREFIX: PYTEST_REQPASS=2
+            PYTHON_BASE_IMAGE: python:3.6
+            KUBERNETES_VERSION: v1.20.0
+          - tox_env: py36-devel
+            PREFIX: PYTEST_REQPASS=2
+            PYTHON_BASE_IMAGE: python:3.6
+            KUBERNETES_VERSION: v1.20.0
+          - tox_env: py37
+            PREFIX: PYTEST_REQPASS=2
+            PYTHON_BASE_IMAGE: python:3.7
+            KUBERNETES_VERSION: v1.20.0
+          - tox_env: py38
+            PREFIX: PYTEST_REQPASS=2
+            PYTHON_BASE_IMAGE: python:3.8
+            KUBERNETES_VERSION: v1.20.0
+          - tox_env: py39
+            PREFIX: PYTEST_REQPASS=2
+            PYTHON_BASE_IMAGE: python:3.9
+            KUBERNETES_VERSION: v1.20.0
+          - tox_env: py39-devel
+            PREFIX: PYTEST_REQPASS=2
+            PYTHON_BASE_IMAGE: python:3.9
+            KUBERNETES_VERSION: v1.20.0
+          # TODO
+          # - tox_env: packaging
+
     steps:
       - name: Check out code 
         uses: actions/checkout@v2
@@ -61,14 +95,13 @@ jobs:
 
       - name: Install kubectl
         run: |
-          curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.20.0/bin/linux/amd64/kubectl; chmod +x ./kubectl
+          curl -LO https://storage.googleapis.com/kubernetes-release/release/${{ matrix.KUBERNETES_VERSION }}/bin/linux/amd64/kubectl; chmod +x ./kubectl
           sudo install kubectl /usr/local/bin
 
       - name: Install kind
         run: |
           curl -Lo ./kind "https://kind.sigs.k8s.io/dl/v0.9.0/kind-$(uname)-amd64" && chmod +x ./kind 
           sudo install kind /usr/local/bin
-          # Need kubectl
 
       - name: Create single node cluster
         run: |
@@ -76,10 +109,10 @@ jobs:
           kind: Cluster
           apiVersion: kind.x-k8s.io/v1alpha4
           networking:
-            ipFamily: ${IP_FAMILY}
+            ipFamily: ipv4
           EOF
 
-      - name: Get Cluster status
+      - name: Wait and get Cluster status
         run: |
           # wait network is ready
           sudo kubectl wait --for=condition=ready pods --namespace=kube-system -l k8s-app=kube-dns
@@ -99,14 +132,15 @@ jobs:
           chmod +x virtctl
           sudo install virtctl /usr/local/bin
 
-      - name: Build molecule test container 
+      - name: Build molecule test container for ${{ matrix.tox_env }}
         run: |
-          docker build . --file tools/Dockerfile  -t molecule_kubevirt:latest
-          sudo kind load docker-image molecule_kubevirt:latest
+          docker build --build-arg PYTHON_BASE_IMAGE=${{ matrix.PYTHON_BASE_IMAGE }} --build-arg KUBERNETES_VERSION=${{ matrix.KUBERNETES_VERSION }} . --file tools/Dockerfile  -t molecule_kubevirt_${{ matrix.tox_env }}:latest
+          # FIXME : load is slow : set a private registry, as described here https://kind.sigs.k8s.io/docs/user/local-registry/
+          sudo kind load docker-image molecule_kubevirt_${{ matrix.tox_env }}:latest
 
       - name: Push molecule test to Kind 
         run: |
-          sudo kind load docker-image molecule_kubevirt:latest
+          sudo kind load docker-image molecule_kubevirt_${{ matrix.tox_env }}:latest
 
       - name: Install kail 
         run: | 
@@ -114,30 +148,56 @@ jobs:
           tar xf kail.tar.gz
           sudo install kail /usr/local/bin
 
-      - name: Get Kubevirt status
+      - name: Wait and get Kubevirt status
         run: |
           # wait network is ready
           sudo kubectl wait --for=condition=ready pods --namespace=kubevirt -l kubevirt.io=virt-operator 
-          sleep 30
           sudo kubectl wait --for=condition=ready pods --namespace=kubevirt -l kubevirt.io=virt-api || true
           sudo kubectl wait --for=condition=ready pods --namespace=kubevirt -l kubevirt.io=virt-controller || true
           sudo kubectl wait --for=condition=ready pods --namespace=kubevirt -l kubevirt.io=virt-handler || true
           sudo kubectl get nodes -o wide
           sudo kubectl get pods -A
 
+      - name: Prepare Job
+        run: | 
+          # Service Account for Job
+          sudo kubectl create -f tools/test-rolebinding.yaml
+          # Configmap will be witinig untill it is deleted, telling one Pod ended the Job
+          sudo kubectl create configmap molecule-job-running --from-literal status=Started
+          
       - name: Start test Job
         run: | 
-          sudo kubectl create -f tools/test-rolebinding.yaml
-          # Create a configmap github will be to be deleted, telling one Pod ended the Job
-          sudo kubectl create configmap molecule-job-running --from-literal status=Started
-          sudo kubectl apply -f tools/test-job.yaml
+          cat <<EOF | sudo kubectl apply -f -
+          ---
+          apiVersion: batch/v1
+          kind: Job
+          metadata:
+            name: molecule
+          spec:
+            template:
+              spec:
+                serviceAccountName: molecule-kubevirt
+                containers:
+                - name: molecule
+                  image: molecule_kubevirt_${{ matrix.tox_env }}
+                  imagePullPolicy: IfNotPresent
+                  command: [ "/bin/bash", "-c", "--" ]
+                  args: ["tox -e ${{ matrix.tox_env }} -c /opt/molecule_kubevirt/tox.ini; kubectl create configmap molecule-result --from-literal exitCode=$? && kubectl delete configmap molecule-job-running"]
+                  env: 
+                    - name: PYTEST_REQPASS
+                      value: "2" 
+                restartPolicy: Never
+            backoffLimit: 0
+          EOF
+          
+          echo "Job launched"
 
       - name: Wait for Job to end and log Pods in default namespace
         run: | 
           # Wait for Job Pod to start
           sudo kubectl wait --for=condition=ready pods -l job-name=molecule --namespace default
-          # Send console log to both :(  need async wait pod being created
-          ( sleep 180 && sudo sh -c 'true | (setsid virtctl console instance) 2>&1 | tee /tmp/virtcl.txt' || true ) &
+          # FIXME : virtctl not working when detached => open issue/PR on kubevirt 
+          ( sleep 180 && sudo virtctl console instance | tee /tmp/virtcl.txt || true ) &
           # Kail sends any logs from default namespace both to stdout and a log file
           ( sudo kail -n default 2>&1 | tee /tmp/kail.log || true ) &
           # Wait for molecule Job to delete configmap and notify one Job Pod as ran till the end
@@ -155,7 +215,6 @@ jobs:
           sudo kubectl describe cm > /tmp/kind/logs/cm.txt
           cp /tmp/kail.log /tmp/kind/logs || true
           cp /tmp/describes.txt /tmp/kind/logs || true
-          sudo cp /tmp/virtcl.txt /tmp/kind/logs || true
           sudo dmesg > /tmp/kind/logs/dmesg.txt
           sudo kind export logs /tmp/kind/logs
           sudo journalctl | cat > /tmp/kind/logs/journalctl.txt
@@ -167,3 +226,75 @@ jobs:
         with:
           name: kind-logs-${{ env.JOB_NAME }}-${{ github.run_id }}
           path: /tmp/kind/logs
+
+  publish:
+    name: Publish to PyPI registry
+    needs:
+      - build
+    runs-on: ubuntu-latest
+
+    env:
+      PY_COLORS: 1
+      TOXENV: packaging
+
+    steps:
+      - name: Switch to using Python 3.6 by default
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.6
+      - name: Install tox
+        run: python -m pip install --user tox
+      - name: Check out src from Git
+        uses: actions/checkout@v2
+        with:
+          # Get shallow Git history (default) for release events
+          # but have a complete clone for any other workflows.
+          # Both options fetch tags but since we're going to remove
+          # one from HEAD in non-create-tag workflows, we need full
+          # history for them.
+          fetch-depth: >-
+            ${{
+              (
+                (
+                  github.event_name == 'create' &&
+                  github.event.ref_type == 'tag'
+                ) ||
+                github.event_name == 'release'
+              ) &&
+              1 || 0
+            }}
+      - name: Drop Git tags from HEAD for non-tag-create and non-release events
+        if: >-
+          (
+            github.event_name != 'create' ||
+            github.event.ref_type != 'tag'
+          ) &&
+          github.event_name != 'release'
+        run: >-
+          git tag --points-at HEAD
+          |
+          xargs git tag --delete
+      - name: Build dists
+        run: python -m tox
+      - name: Publish to test.pypi.org
+        if: >-
+          (
+            github.event_name == 'push' &&
+            github.ref == format(
+              'refs/heads/{0}', github.event.repository.default_branch
+            )
+          ) ||
+          (
+            github.event_name == 'create' &&
+            github.event.ref_type == 'tag'
+          )
+        uses: pypa/gh-action-pypi-publish@master
+        with:
+          password: ${{ secrets.testpypi_password }}
+          repository_url: https://test.pypi.org/legacy/
+      - name: Publish to pypi.org
+        if: >-  # "create" workflows run separately from "push" & "pull_request"
+          github.event_name == 'release'
+        uses: pypa/gh-action-pypi-publish@master
+        with:
+          password: ${{ secrets.pypi_password }}
