@@ -56,11 +56,30 @@ jobs:
       - name: Check out code 
         uses: actions/checkout@v2
 
+       # Even our lint and other envs need access to tox
+      - name: Install a default Python
+        uses: actions/setup-python@v2
+        if: ${{ ! contains(matrix.tox_env, 'py') }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install -U pip
+          pip install tox
+        if: ${{ ! contains(matrix.tox_env, 'py') }}
+
+      - name: Run tox -e ${{ matrix.tox_env }}
+        run: |
+          echo "${{ matrix.PREFIX }} tox -e ${{ matrix.tox_env }}"
+          ${{ matrix.PREFIX }} tox -e ${{ matrix.tox_env }}
+        if: ${{ ! contains(matrix.tox_env, 'py') }}
+
       - name: Enable ipv4 and ipv6 forwarding
         run: |
           sudo sysctl -w net.ipv6.conf.all.forwarding=1
           sudo sysctl -w net.ipv4.ip_forward=1
+        if: ${{ contains(matrix.tox_env, 'py') }}
 
+      # TODO : split 
       - name: Install docker
         run: |
           . /etc/os-release
@@ -83,6 +102,7 @@ jobs:
           curl -qsSL https://github.com/containernetworking/plugins/releases/download/v0.8.6/cni-plugins-linux-amd64-v0.8.6.tgz --output /tmp/cni.tgz
           sudo mkdir -p /usr/libexec/cni
           sudo tar -C /usr/libexec/cni -xvzf /tmp/cni.tgz
+        if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Tweak Ubuntu apparmor
         run: |
@@ -92,16 +112,19 @@ jobs:
           echo "$tweak_qemu_apprarmor" | sudo dd of=/etc/apparmor.d/usr.sbin.libvirtd 
           sudo cat /etc/apparmor.d/usr.sbin.libvirtd 
           sudo systemctl reload apparmor.service
+        if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Install kubectl
         run: |
           curl -LO https://storage.googleapis.com/kubernetes-release/release/${{ matrix.KUBERNETES_VERSION }}/bin/linux/amd64/kubectl; chmod +x ./kubectl
           sudo install kubectl /usr/local/bin
+        if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Install kind
         run: |
           curl -Lo ./kind "https://kind.sigs.k8s.io/dl/v0.9.0/kind-$(uname)-amd64" && chmod +x ./kind 
           sudo install kind /usr/local/bin
+        if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Create single node cluster
         run: |
@@ -111,6 +134,7 @@ jobs:
           networking:
             ipFamily: ipv4
           EOF
+        if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Wait and get Cluster status
         run: |
@@ -118,12 +142,14 @@ jobs:
           sudo kubectl wait --for=condition=ready pods --namespace=kube-system -l k8s-app=kube-dns
           sudo kubectl get nodes -o wide
           sudo kubectl get pods -A
+        if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Install kubevirt
         run: |          
           sudo kubectl create -f https://github.com/kubevirt/kubevirt/releases/download/v0.36.0/kubevirt-operator.yaml
           sudo kubectl create configmap kubevirt-config -n kubevirt --from-literal debug.useEmulation=true
           sudo kubectl create -f https://github.com/kubevirt/kubevirt/releases/download/v0.36.0/kubevirt-cr.yaml
+        if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Install virtcl
         run: |          
@@ -131,22 +157,26 @@ jobs:
           curl -L -o virtctl https://github.com/kubevirt/kubevirt/releases/download/v0.36.0/virtctl-v0.36.0-${ARCH}
           chmod +x virtctl
           sudo install virtctl /usr/local/bin
+        if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Build molecule test container for ${{ matrix.tox_env }}
         run: |
           docker build --build-arg PYTHON_BASE_IMAGE=${{ matrix.PYTHON_BASE_IMAGE }} --build-arg KUBERNETES_VERSION=${{ matrix.KUBERNETES_VERSION }} . --file tools/Dockerfile  -t molecule_kubevirt_${{ matrix.tox_env }}:latest
           # FIXME : load is slow : set a private registry, as described here https://kind.sigs.k8s.io/docs/user/local-registry/
           sudo kind load docker-image molecule_kubevirt_${{ matrix.tox_env }}:latest
+        if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Push molecule test to Kind 
         run: |
           sudo kind load docker-image molecule_kubevirt_${{ matrix.tox_env }}:latest
+        if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Install kail 
         run: | 
           curl -SL https://github.com/boz/kail/releases/download/v0.15.0/kail_0.15.0_linux_amd64.tar.gz -o kail.tar.gz
           tar xf kail.tar.gz
           sudo install kail /usr/local/bin
+        if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Wait and get Kubevirt status
         run: |
@@ -157,6 +187,7 @@ jobs:
           sudo kubectl wait --for=condition=ready pods --namespace=kubevirt -l kubevirt.io=virt-handler || true
           sudo kubectl get nodes -o wide
           sudo kubectl get pods -A
+        if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Prepare Job
         run: | 
@@ -164,6 +195,7 @@ jobs:
           sudo kubectl create -f tools/test-rolebinding.yaml
           # Configmap will be witinig untill it is deleted, telling one Pod ended the Job
           sudo kubectl create configmap molecule-job-running --from-literal status=Started
+        if: ${{ contains(matrix.tox_env, 'py') }}
           
       - name: Start test Job
         run: | 
@@ -191,6 +223,7 @@ jobs:
           EOF
           
           echo "Job launched"
+        if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Wait for Job to end and log Pods in default namespace
         run: | 
@@ -204,7 +237,9 @@ jobs:
           sudo kubectl wait --for delete --timeout=15m  configmap/molecule-job-running
           # Exit of github action is the one set by molecule job in config map result
           exit $(sudo kubectl get configmap molecule-result -o "jsonpath={.data['exitCode']}")
+        if: ${{ contains(matrix.tox_env, 'py') }}
 
+      # FIXME : if always ? 
       - name: Export logs
         if: always()
         run: |
@@ -212,13 +247,14 @@ jobs:
           sleep 30;
           sudo kubectl get events > /tmp/kind/logs/events.txt || true
           sudo kubectl describe jobs > /tmp/kind/logs/jobs.txt || true
-          sudo kubectl describe cm > /tmp/kind/logs/cm.txt
+          sudo kubectl describe cm > /tmp/kind/logs/cm.txt || true
           cp /tmp/kail.log /tmp/kind/logs || true
           cp /tmp/describes.txt /tmp/kind/logs || true
-          sudo dmesg > /tmp/kind/logs/dmesg.txt
-          sudo kind export logs /tmp/kind/logs
-          sudo journalctl | cat > /tmp/kind/logs/journalctl.txt
-          sudo chown -R $USER:$USER /tmp/kind/logs
+          sudo dmesg > /tmp/kind/logs/dmesg.txt || true
+          sudo kind export logs /tmp/kind/logs || true
+          sudo journalctl | cat > /tmp/kind/logs/journalctl.txt || true
+          sudo chown -R $USER:$USER /tmp/kind/logs || true
+        
 
       - name: Upload logs
         if: always()
