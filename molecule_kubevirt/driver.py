@@ -23,10 +23,10 @@ from __future__ import absolute_import
 
 import os
 
-from molecule import logger
+from molecule import logger, util
 from molecule.api import Driver
-from molecule.util import lru_cache, sysexit_with_message
-from molecule import util
+from molecule.util import lru_cache
+
 log = logger.get_logger(__name__)
 
 
@@ -140,7 +140,7 @@ class KubeVirt(Driver):
               socket types can be configured. For details, please reference
               `Docker daemon socket options`_.
 
-    .. code-block:: yaml 
+    .. code-block:: yaml
         FIXME : change doc
         platforms:
         - name: instance
@@ -195,10 +195,12 @@ class KubeVirt(Driver):
         self._name = value
 
     # IMPORTANT : use NodePort for ssh ok (or port-forward ? => option)
-    #https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud-2009.qcow2
+    # https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud-2009.qcow2
     @property
     def default_safe_files(self):
-        return [os.path.join(self._config.scenario.ephemeral_directory, "Dockerfile")] # FIXME : gusse more safe files needed here :)
+        return [
+            os.path.join(self._config.scenario.ephemeral_directory, "Dockerfile")
+        ]  # FIXME : gusse more safe files needed here :)
 
     @property
     def login_cmd_template(self):
@@ -221,7 +223,7 @@ class KubeVirt(Driver):
 
         return next(
             item for item in instance_config_dict if item["instance"] == instance_name
-        )        
+        )
 
     def login_options(self, instance_name):
         d = {"instance": instance_name}
@@ -246,7 +248,6 @@ class KubeVirt(Driver):
             # Instance has yet to be provisioned , therefore the
             # instance_config is not on disk.
             return {}
-
 
     @lru_cache()
     def sanity_checks(self):

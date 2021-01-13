@@ -7,11 +7,11 @@
   tasks:
     - name: Delete VM
       community.general.kubevirt_vm:
-          state: absent
-          wait: true
-          wait_timeout: 180
-          name: "{{ item.name }}" # + metadata
-          namespace: "{{ item.namespace | default('default') }}"
+        state: absent
+        wait: true
+        wait_timeout: 180
+        name: "{{ item.name }}"
+        namespace: "{{ item.namespace | default('default') }}"
       with_items: "{{ molecule_yml.platforms }}"
 
     - name: Delete cloud init
@@ -22,14 +22,14 @@
         namespace: "{{ item.namespace | default('default') }}"
       with_items: "{{ molecule_yml.platforms }}"
 
-    #- name: Delete ssh service
-    #  k8s:
-    #   state: absent
-    #   apiVersion: v1
-    #   kind: Service
-    #   name: "{{ item.name }}-ssh"
-    #   namespace: "{{ item.namespace | default('default') }}"
-    #  with_items: "{{ molecule_yml.platforms }}"
+    # - name: Delete ssh service
+    #   k8s:
+    #    state: absent
+    #    apiVersion: v1
+    #    kind: Service
+    #    name: "{{ item.name }}-ssh"
+    #    namespace: "{{ item.namespace | default('default') }}"
+    #   with_items: "{{ molecule_yml.platforms }}"
 
     - name: Delete ssh key pair
       file:

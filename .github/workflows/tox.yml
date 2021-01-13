@@ -49,14 +49,12 @@ jobs:
             PREFIX: PYTEST_REQPASS=2
             PYTHON_BASE_IMAGE: python:3.9
             KUBERNETES_VERSION: v1.20.0
-          # TODO
-          # - tox_env: packaging
+          - tox_env: packaging
 
     steps:
-      - name: Check out code 
+      - name: Check out code
         uses: actions/checkout@v2
 
-       # Even our lint and other envs need access to tox
       - name: Install a default Python
         uses: actions/setup-python@v2
         if: ${{ ! contains(matrix.tox_env, 'py') }}
@@ -79,7 +77,7 @@ jobs:
           sudo sysctl -w net.ipv4.ip_forward=1
         if: ${{ contains(matrix.tox_env, 'py') }}
 
-      # TODO : split 
+      # TODO : split
       - name: Install docker
         run: |
           . /etc/os-release
@@ -109,8 +107,8 @@ jobs:
           sudo cat /etc/apparmor.d/usr.sbin.libvirtd
           tweak_qemu_apprarmor="$(head -n -1 /etc/apparmor.d/usr.sbin.libvirtd; echo "  /usr/libexec/qemu-kvm rmix,"; tail -1 /etc/apparmor.d/usr.sbin.libvirtd)"
           echo "$tweak_qemu_apprarmor"
-          echo "$tweak_qemu_apprarmor" | sudo dd of=/etc/apparmor.d/usr.sbin.libvirtd 
-          sudo cat /etc/apparmor.d/usr.sbin.libvirtd 
+          echo "$tweak_qemu_apprarmor" | sudo dd of=/etc/apparmor.d/usr.sbin.libvirtd
+          sudo cat /etc/apparmor.d/usr.sbin.libvirtd
           sudo systemctl reload apparmor.service
         if: ${{ contains(matrix.tox_env, 'py') }}
 
@@ -122,7 +120,7 @@ jobs:
 
       - name: Install kind
         run: |
-          curl -Lo ./kind "https://kind.sigs.k8s.io/dl/v0.9.0/kind-$(uname)-amd64" && chmod +x ./kind 
+          curl -Lo ./kind "https://kind.sigs.k8s.io/dl/v0.9.0/kind-$(uname)-amd64" && chmod +x ./kind
           sudo install kind /usr/local/bin
         if: ${{ contains(matrix.tox_env, 'py') }}
 
@@ -145,14 +143,14 @@ jobs:
         if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Install kubevirt
-        run: |          
+        run: |
           sudo kubectl create -f https://github.com/kubevirt/kubevirt/releases/download/v0.36.0/kubevirt-operator.yaml
           sudo kubectl create configmap kubevirt-config -n kubevirt --from-literal debug.useEmulation=true
           sudo kubectl create -f https://github.com/kubevirt/kubevirt/releases/download/v0.36.0/kubevirt-cr.yaml
         if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Install virtcl
-        run: |          
+        run: |
           export ARCH=linux-amd64
           curl -L -o virtctl https://github.com/kubevirt/kubevirt/releases/download/v0.36.0/virtctl-v0.36.0-${ARCH}
           chmod +x virtctl
@@ -166,13 +164,13 @@ jobs:
           sudo kind load docker-image molecule_kubevirt_${{ matrix.tox_env }}:latest
         if: ${{ contains(matrix.tox_env, 'py') }}
 
-      - name: Push molecule test to Kind 
+      - name: Push molecule test to Kind
         run: |
           sudo kind load docker-image molecule_kubevirt_${{ matrix.tox_env }}:latest
         if: ${{ contains(matrix.tox_env, 'py') }}
 
-      - name: Install kail 
-        run: | 
+      - name: Install kail
+        run: |
           curl -SL https://github.com/boz/kail/releases/download/v0.15.0/kail_0.15.0_linux_amd64.tar.gz -o kail.tar.gz
           tar xf kail.tar.gz
           sudo install kail /usr/local/bin
@@ -181,7 +179,7 @@ jobs:
       - name: Wait and get Kubevirt status
         run: |
           # wait network is ready
-          sudo kubectl wait --for=condition=ready pods --namespace=kubevirt -l kubevirt.io=virt-operator 
+          sudo kubectl wait --for=condition=ready pods --namespace=kubevirt -l kubevirt.io=virt-operator
           sudo kubectl wait --for=condition=ready pods --namespace=kubevirt -l kubevirt.io=virt-api || true
           sudo kubectl wait --for=condition=ready pods --namespace=kubevirt -l kubevirt.io=virt-controller || true
           sudo kubectl wait --for=condition=ready pods --namespace=kubevirt -l kubevirt.io=virt-handler || true
@@ -190,15 +188,15 @@ jobs:
         if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Prepare Job
-        run: | 
+        run: |
           # Service Account for Job
           sudo kubectl create -f tools/test-rolebinding.yaml
           # Configmap will be witinig untill it is deleted, telling one Pod ended the Job
           sudo kubectl create configmap molecule-job-running --from-literal status=Started
         if: ${{ contains(matrix.tox_env, 'py') }}
-          
+
       - name: Start test Job
-        run: | 
+        run: |
           cat <<EOF | sudo kubectl apply -f -
           ---
           apiVersion: batch/v1
@@ -215,21 +213,21 @@ jobs:
                   imagePullPolicy: IfNotPresent
                   command: [ "/bin/bash", "-c", "--" ]
                   args: ["tox -e ${{ matrix.tox_env }} -c /opt/molecule_kubevirt/tox.ini; kubectl create configmap molecule-result --from-literal exitCode=$? && kubectl delete configmap molecule-job-running"]
-                  env: 
+                  env:
                     - name: PYTEST_REQPASS
-                      value: "2" 
+                      value: "2"
                 restartPolicy: Never
             backoffLimit: 0
           EOF
-          
+
           echo "Job launched"
         if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Wait for Job to end and log Pods in default namespace
-        run: | 
+        run: |
           # Wait for Job Pod to start
           sudo kubectl wait --for=condition=ready pods -l job-name=molecule --namespace default
-          # FIXME : virtctl not working when detached => open issue/PR on kubevirt 
+          # FIXME : virtctl not working when detached => open issue/PR on kubevirt
           ( sleep 180 && sudo virtctl console instance | tee /tmp/virtcl.txt || true ) &
           # Kail sends any logs from default namespace both to stdout and a log file
           ( sudo kail -n default 2>&1 | tee /tmp/kail.log || true ) &
@@ -239,7 +237,7 @@ jobs:
           exit $(sudo kubectl get configmap molecule-result -o "jsonpath={.data['exitCode']}")
         if: ${{ contains(matrix.tox_env, 'py') }}
 
-      # FIXME : if always ? 
+      # FIXME : if always ?
       - name: Export logs
         if: always()
         run: |
@@ -254,7 +252,7 @@ jobs:
           sudo kind export logs /tmp/kind/logs || true
           sudo journalctl | cat > /tmp/kind/logs/journalctl.txt || true
           sudo chown -R $USER:$USER /tmp/kind/logs || true
-        
+
 
       - name: Upload logs
         if: always()
