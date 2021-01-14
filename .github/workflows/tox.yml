@@ -241,14 +241,14 @@ jobs:
       - name: Export logs
         if: always()
         run: |
-          mkdir -p /tmp/kind/logs
+          mkdir -p /tmp/kind/logs || true
           sleep 30;
           sudo kubectl get events > /tmp/kind/logs/events.txt || true
           sudo kubectl describe jobs > /tmp/kind/logs/jobs.txt || true
           sudo kubectl describe cm > /tmp/kind/logs/cm.txt || true
           cp /tmp/kail.log /tmp/kind/logs || true
           cp /tmp/describes.txt /tmp/kind/logs || true
-          sudo  cp /tmp/virtcl.txt /tmp/kind/logs
+          sudo  cp /tmp/virtcl.txt /tmp/kind/logs || true
           sudo dmesg > /tmp/kind/logs/dmesg.txt || true
           sudo kind export logs /tmp/kind/logs || true
           sudo journalctl | cat > /tmp/kind/logs/journalctl.txt || true
