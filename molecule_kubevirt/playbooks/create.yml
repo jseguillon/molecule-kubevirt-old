@@ -126,7 +126,7 @@
           - name: "{{ item.name }}-container-disk"
             volume:
               containerDisk:
-                image: "{{ item.image | default('jseguillon/kubevirt-images:centos-7-x86_64-genericcloud-2009') }}"
+                image: "{{ item.image | default('jseguillon/focal-server-cloudimg-amd64') }}"
                 # path: "{{ item.path | default(omit) }}"
                 imagePullPolicy: "IfNotPresent"
             disk:
