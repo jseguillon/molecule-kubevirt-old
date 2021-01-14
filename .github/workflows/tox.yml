@@ -228,7 +228,7 @@ jobs:
           # Wait for Job Pod to start
           sudo kubectl wait --for=condition=ready pods -l job-name=molecule --namespace default
           # FIXME : virtctl not working when detached => open issue/PR on kubevirt
-          ( sleep 180 && sudo script -e -c "virtctl console instance" | tee /tmp/virtcl.txt || true ) &
+          ( sleep 300 && sudo script -e -c "virtctl console instance" | tee /tmp/virtcl.txt || true ) &
           # Kail sends any logs from default namespace both to stdout and a log file
           ( sudo kail -n default 2>&1 | tee /tmp/kail.log || true ) &
           # Wait for molecule Job to delete configmap and notify one Job Pod as ran till the end
