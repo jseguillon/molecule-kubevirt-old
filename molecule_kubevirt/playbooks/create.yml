@@ -79,125 +79,136 @@
     #               storage:  "{{ item.cdi_storage | default('10Gi') }}"
     #   with_items: "{{ molecule_yml.platforms  }}"
 
-    - name: Create virtual machine 'myvm' and start it
-      community.general.kubevirt_vm:
-        state: running
-        wait: true
-        wait_timeout: "{{ item.wait_timeout | default(300) }}"
-        name: "{{ item.name }}"
-        namespace: "{{ item.namespace | default('default') }}"
-        memory: "{{ item.memory | default('5Gi') }}"
-        cpu_cores: "{{ item.cpu_cores | default(omit) }}"
-        machine_type: "{{ item.machine_type | default('q35') }}"
-
-        interfaces:
-          - name: default
-            masquerade: {}
-            ports:
-              - port: 22
-            network:
-              pod: {}
-
-        # datavolumes:
-        #   - name: "{{ item.name }}-data-volume"
-        #     source:
-        #       # pvc:
-        #       #   name: "{{ item.cache_once_url | default('https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud-2009.qcow2') | basename | replace('.','-') | replace('_','-') | lower }}"
-        #       #   namespace: "{{ item.cache_once_namespace | default('default') }}"
-        #       http:
-        #         url: "{{ item.cache_once_url | default('https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud-2009.qcow2') }}"
-        #     pvc:
-        #       accessModes:
-        #         - ReadWriteOnce
-        #       storage: 10Gi
-        cloud_init_nocloud:
-          secretRef:
-            name: "{{ item.name }}-cloud-init"
-
-        cpu_model: "{{ item.cpu_model | default(omit) }}"
-        headless: "{{ item.headless | default(omit) }}"
-        hugepage_size: "{{ item.hugepage_size | default(omit) }}"
-
-        cpu_limit: "{{ item.cpu_limit | default(omit) }}"
-        cpu_shares: "{{ item.cpu_shares | default(omit) }}"
-        ephemeral: "{{ item.ephemeral | default(omit) }}"
-        # TODO : deal with alternative disks configuration (not CDI)
-        disks:
-          - name: "{{ item.name }}-container-disk"
-            volume:
-              containerDisk:
-                image: "{{ item.image | default('quay.io/jseguillon/kubevirt-images:focal-server-cloudimg-amd64') }}"
-                # path: "{{ item.path | default(omit) }}"
-                imagePullPolicy: "IfNotPresent"
-            disk:
-              bus: virtio
-      with_items: "{{ molecule_yml.platforms  }}"
-      register: server
-
-    # TODO : NodePort support
-    - name: Create ssh service
-      k8s:
-        state: present
-        definition:
-          apiVersion: v1
-          kind: Service
-          metadata:
+    - name: Create VM block
+      block:
+        - name: Create virtual machine 'myvm' and start it
+          community.general.kubevirt_vm:
+            state: running
+            wait: true
+            wait_timeout: "{{ item.wait_timeout | default(900) }}"
             name: "{{ item.name }}"
             namespace: "{{ item.namespace | default('default') }}"
-          spec:
-            ports:
-              - port: 22
-                protocol: TCP
-                targetPort: 22
-            selector:
-              vm.cnv.io/name: "{{ item.name }}"
-            type: ClusterIP
-      register: service
-      with_items: "{{ molecule_yml.platforms  }}"
+            memory: "{{ item.memory | default('5Gi') }}"
+            cpu_cores: "{{ item.cpu_cores | default(omit) }}"
+            machine_type: "{{ item.machine_type | default('q35') }}"
 
-    - name: debug servers
-      debug:
-        msg: "{{ item }}"
-      with_items: "{{ server.results }}"
+            interfaces:
+              - name: default
+                masquerade: {}
+                ports:
+                  - port: 22
+                network:
+                  pod: {}
 
-    - name: Flatten services result for use when setting instance_config
-      set_fact:
-        flatten_services: "{{ service.results | json_query('[].{Name: result.metadata.name, IP: result.spec.clusterIP}') }}"
+            # datavolumes:
+            #   - name: "{{ item.name }}-data-volume"
+            #     source:
+            #       # pvc:
+            #       #   name: "{{ item.cache_once_url | default('https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud-2009.qcow2') | basename | replace('.','-') | replace('_','-') | lower }}"
+            #       #   namespace: "{{ item.cache_once_namespace | default('default') }}"
+            #       http:
+            #         url: "{{ item.cache_once_url | default('https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud-2009.qcow2') }}"
+            #     pvc:
+            #       accessModes:
+            #         - ReadWriteOnce
+            #       storage: 10Gi
+            cloud_init_nocloud:
+              secretRef:
+                name: "{{ item.name }}-cloud-init"
 
-    - name: Populate instance config dict
-      set_fact:
-        instance_conf_dict: |
-          { 'instance': "{{ item.kubevirt_vm.metadata.name }}",
-            'address': "{{ flatten_services | json_query(query) }}",
-            'user': "molecule",
-            'port': "22",
-            'identity_file':  "{{ molecule_ephemeral_directory }}/identity_{{ item.kubevirt_vm.metadata.name }}"
-          }
-      vars:
-        query: "[?Name=='{{ item.kubevirt_vm.metadata.name }}'].IP | [0]"
-      with_items: "{{ server.results }}"
-      register: instance_config_dict
+            cpu_model: "{{ item.cpu_model | default(omit) }}"
+            headless: "{{ item.headless | default(omit) }}"
+            hugepage_size: "{{ item.hugepage_size | default(omit) }}"
 
-    - name: debug instances
-      debug:
-        msg: "{{ instance_conf_dict }}"
+            cpu_limit: "{{ item.cpu_limit | default(omit) }}"
+            cpu_shares: "{{ item.cpu_shares | default(omit) }}"
+            ephemeral: "{{ item.ephemeral | default(omit) }}"
+            # TODO : deal with alternative disks configuration (not CDI)
+            disks:
+              - name: "{{ item.name }}-container-disk"
+                volume:
+                  containerDisk:
+                    image: "{{ item.image | default('quay.io/jseguillon/kubevirt-images:focal-server-cloudimg-amd64') }}"
+                    # path: "{{ item.path | default(omit) }}"
+                    imagePullPolicy: "IfNotPresent"
+                disk:
+                  bus: virtio
+          with_items: "{{ molecule_yml.platforms  }}"
+          register: server
 
-    - name: debug ssh port test
-      debug:
-        msg: "{{ flatten_services | json_query(query) }}"
-      vars:
-        query: "[?Name=='{{ item.kubevirt_vm.metadata.name }}'].IP | [0]"
-      with_items: "{{ server.results }}"
+        - name: Create ssh service
+          k8s:
+            state: present
+            definition:
+              apiVersion: v1
+              kind: Service
+              metadata:
+                name: "{{ item.name }}"
+                namespace: "{{ item.namespace | default('default') }}"
+              spec:
+                ports:
+                  - port: 22
+                    protocol: TCP
+                    targetPort: 22
+                selector:
+                  vm.cnv.io/name: "{{ item.name }}"
+                type: ClusterIP
+          register: service
+          with_items: "{{ molecule_yml.platforms  }}"
 
-    - name: Wait 300 seconds for port 22 to become open
-      wait_for:
-        timeout: 480
-        port: 22
-        host: "{{ flatten_services | json_query(query) }}"
-        delay: 10
-      vars:
-        query: "[?Name=='{{ item.kubevirt_vm.metadata.name }}'].IP | [0]"
-      with_items: "{{ server.results }}"
+        - name: debug servers
+          debug:
+            msg: "{{ item }}"
+          with_items: "{{ server.results }}"
+
+        - name: Flatten services result for use when setting instance_config
+          set_fact:
+            flatten_services: "{{ service.results | json_query('[].{Name: result.metadata.name, IP: result.spec.clusterIP}') }}"
+
+        - name: Populate instance config dict
+          set_fact:
+            instance_conf_dict: |
+              { 'instance': "{{ item.kubevirt_vm.metadata.name }}",
+                'address': "{{ flatten_services | json_query(query) }}",
+                'user': "molecule",
+                'port': "22",
+                'identity_file':  "{{ molecule_ephemeral_directory }}/identity_{{ item.kubevirt_vm.metadata.name }}"
+              }
+          vars:
+            query: "[?Name=='{{ item.kubevirt_vm.metadata.name }}'].IP | [0]"
+          with_items: "{{ server.results }}"
+          register: instance_config_dict
+
+        - name: debug instances
+          debug:
+            msg: "{{ instance_conf_dict }}"
+
+        - name: debug ssh port test
+          debug:
+            msg: "{{ flatten_services | json_query(query) }}"
+          vars:
+            query: "[?Name=='{{ item.kubevirt_vm.metadata.name }}'].IP | [0]"
+          with_items: "{{ server.results }}"
+
+        - name: Wait 300 seconds for port 22 to become open
+          wait_for:
+            timeout: 480
+            port: 22
+            host: "{{ flatten_services | json_query(query) }}"
+            delay: 10
+          vars:
+            query: "[?Name=='{{ item.kubevirt_vm.metadata.name }}'].IP | [0]"
+          with_items: "{{ server.results }}"
+
+      rescue: 
+        - name: get all resources
+          k8s_info: 
+            kind: "{{ item }}"
+          with_items: 
+            - VirtualMachine
+            - VirtualMachineInstance
+            - Pod
+            - Service
 
     - name: Convert instance config dict to a list
       set_fact:
