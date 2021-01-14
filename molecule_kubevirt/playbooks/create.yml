@@ -205,11 +205,20 @@
           k8s_info: 
             kind: "{{ item }}"
           with_items: 
-            - VirtualMachine
-            - VirtualMachineInstance
             - Pod
             - Service
+        - name: get all resources
+          k8s_info: 
+            kind: "{{ item }}"
+            api: kubevirt.io/v1alpha3
+          with_items: 
+            - VirtualMachine
+            - VirtualMachineInstance
 
+        - name: fail 
+          fail: 
+            msg: Got in rescue to get more logs but cannot continue (Maybe better do handler)
+            
     - name: Convert instance config dict to a list
       set_fact:
         instance_conf: "{{ instance_config_dict.results | map(attribute='ansible_facts.instance_conf_dict') | list }}"
