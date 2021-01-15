@@ -8,7 +8,6 @@
     molecule_labels:
       owner: molecule
   tasks:
-
     - name: Create ssh key pair
       openssh_keypair:
         path: "{{ molecule_ephemeral_directory }}/identity_{{ item.name }}"
@@ -132,24 +131,6 @@
             query: "[?Name=='{{ item.kubevirt_vm.metadata.name }}'].IP | [0]"
           with_items: "{{ server.results }}"
 
-      handler:
-        - name: Get some apiV1 statuses
-          k8s_info:
-            kind: "{{ item }}"
-            namespace: "{{ item.namespace | default('default') }}"
-          with_items:
-            - Pod
-            - Service
-
-        - name: Get kubevirt statuses
-          k8s_info:
-            kind: "{{ item }}"
-            api: kubevirt.io/v1alpha3
-            namespace: "{{ item.namespace | default('default') }}"
-          with_items:
-            - VirtualMachine
-            - VirtualMachineInstance
-
     - name: Convert instance config dict to a list
       set_fact:
         instance_conf: "{{ instance_config_dict.results | map(attribute='ansible_facts.instance_conf_dict') | list }}"
@@ -159,3 +140,21 @@
         content: "{{ instance_conf | to_json | from_json | to_yaml }}"
         dest: "{{ molecule_instance_config }}"
         mode: 0600
+
+  handlers:
+    - name: Get some apiV1 statuses
+      k8s_info:
+        kind: "{{ item }}"
+        namespace: "{{ item.namespace | default('default') }}"
+      with_items:
+        - Pod
+        - Service
+
+    - name: Get kubevirt statuses
+      k8s_info:
+        kind: "{{ item }}"
+        api: kubevirt.io/v1alpha3
+        namespace: "{{ item.namespace | default('default') }}"
+      with_items:
+        - VirtualMachine
+        - VirtualMachineInstance
