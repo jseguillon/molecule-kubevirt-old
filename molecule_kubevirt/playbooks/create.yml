@@ -128,7 +128,7 @@
               - name: "{{ item.name }}-container-disk"
                 volume:
                   containerDisk:
-                    image: "{{ item.image | default('quay.io/jseguillon/kubevirt-images:focal-server-cloudimg-amd64') }}"
+                    image: "{{ item.image | default('quay.io/jseguillon/kubevirt-images:centos-7-x86_64-genericcloud-2009') }}"
                     # path: "{{ item.path | default(omit) }}"
                     imagePullPolicy: "IfNotPresent"
                 disk:
@@ -218,7 +218,7 @@
         - name: fail 
           fail: 
             msg: Got in rescue to get more logs but cannot continue (Maybe better do handler)
-            
+
     - name: Convert instance config dict to a list
       set_fact:
         instance_conf: "{{ instance_config_dict.results | map(attribute='ansible_facts.instance_conf_dict') | list }}"
