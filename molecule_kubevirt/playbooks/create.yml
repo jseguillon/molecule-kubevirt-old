@@ -200,24 +200,21 @@
             query: "[?Name=='{{ item.kubevirt_vm.metadata.name }}'].IP | [0]"
           with_items: "{{ server.results }}"
 
-      rescue: 
-        - name: get all resources
-          k8s_info: 
+      handler:
+        - name: Get some apiV1 statuses
+          k8s_info:
             kind: "{{ item }}"
-          with_items: 
+          with_items:
             - Pod
             - Service
-        - name: get all resources
-          k8s_info: 
+
+        - name: Get kubevirt statuses
+          k8s_info:
             kind: "{{ item }}"
             api: kubevirt.io/v1alpha3
-          with_items: 
+          with_items:
             - VirtualMachine
             - VirtualMachineInstance
-
-        - name: fail 
-          fail: 
-            msg: Got in rescue to get more logs but cannot continue (Maybe better do handler)
 
     - name: Convert instance config dict to a list
       set_fact:
