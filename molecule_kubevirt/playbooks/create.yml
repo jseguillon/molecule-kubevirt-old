@@ -8,11 +8,7 @@
     molecule_labels:
       owner: molecule
   tasks:
-    # TODO : deal with ImagePullSecret P2
 
-    # TODO: deal with CDI image push P1
-
-    # FIXME : force set_fact ssh key if none provided P0
     - name: Create ssh key pair
       openssh_keypair:
         path: "{{ molecule_ephemeral_directory }}/identity_{{ item.name }}"
@@ -20,7 +16,6 @@
         type: rsa
       with_items: "{{ molecule_yml.platforms  }}"
 
-    # TODO: Allow supercharge startup while keeping default credential P2
     - name: Create cloud init with ssh identity for molecule user
       k8s:
         state: present
@@ -35,7 +30,7 @@
             userdata: |-
               #cloud-config
               users:
-                - name: molecule
+                - name: { item.user_name | default('molecule') }}
                   sudo: ALL=(ALL) NOPASSWD:ALL
                   plain_text_passwd: molecule
                   lock_passwd: false
@@ -43,52 +38,16 @@
                     - {{ lookup('file', molecule_ephemeral_directory + '/identity_'+ item.name + '.pub' ) }}
       with_items: "{{ molecule_yml.platforms  }}"
 
-
-    # - name: Create a PVC as a clone for same url
-    #   community.general.kubevirt_pvc:
-    #     name: "{{ item.name }}-disk"
-    #     namespace: "{{ item.namespace | default('default') }}"
-    #     size: "{{ item.disk_size | default('10Gi') }}"
-    #     access_modes:
-    #       - ReadWriteOnce
-    #     cdi_source:
-    #       pvc:
-    #         namespace: "{{ item.cache_once_namespace | default('default') }}"
-    #         name: "{{ item.cache_once_url | default('https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud-2009.qcow2') | basename | replace('.','-') | replace('_','-') | lower }}"
-
-    # # TODO : allow local build and upload
-    # - name: Import disk image into CDI
-    #   k8s:
-    #     state: present
-    #     definition:
-    #       # This example assumes you are using a default storage class
-    #       apiVersion: cdi.kubevirt.io/v1beta1
-    #       kind: DataVolume
-    #       metadata:
-    #         name: "{{ item.name }}"
-    #         namespace: "{{ item.namespace | default('default') }}"
-    #       spec:
-    #         source:
-    #             http:
-    #               url: "https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud-2009.qcow2"
-    #         pvc:
-    #           accessModes:
-    #             - ReadWriteOnce
-    #           resources:
-    #             requests:
-    #               storage:  "{{ item.cdi_storage | default('10Gi') }}"
-    #   with_items: "{{ molecule_yml.platforms  }}"
-
     - name: Create VM block
       block:
         - name: Create virtual machine 'myvm' and start it
           community.general.kubevirt_vm:
             state: running
             wait: true
-            wait_timeout: "{{ item.wait_timeout | default(900) }}"
+            wait_timeout: "{{ item.wait_timeout | default(300) }}"
             name: "{{ item.name }}"
             namespace: "{{ item.namespace | default('default') }}"
-            memory: "{{ item.memory | default('5Gi') }}"
+            memory: "{{ item.memory | default('2Gi') }}"
             cpu_cores: "{{ item.cpu_cores | default(omit) }}"
             machine_type: "{{ item.machine_type | default('q35') }}"
 
@@ -100,18 +59,6 @@
                 network:
                   pod: {}
 
-            # datavolumes:
-            #   - name: "{{ item.name }}-data-volume"
-            #     source:
-            #       # pvc:
-            #       #   name: "{{ item.cache_once_url | default('https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud-2009.qcow2') | basename | replace('.','-') | replace('_','-') | lower }}"
-            #       #   namespace: "{{ item.cache_once_namespace | default('default') }}"
-            #       http:
-            #         url: "{{ item.cache_once_url | default('https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud-2009.qcow2') }}"
-            #     pvc:
-            #       accessModes:
-            #         - ReadWriteOnce
-            #       storage: 10Gi
             cloud_init_nocloud:
               secretRef:
                 name: "{{ item.name }}-cloud-init"
@@ -123,13 +70,14 @@
             cpu_limit: "{{ item.cpu_limit | default(omit) }}"
             cpu_shares: "{{ item.cpu_shares | default(omit) }}"
             ephemeral: "{{ item.ephemeral | default(omit) }}"
-            # TODO : deal with alternative disks configuration (not CDI)
+
             disks:
               - name: "{{ item.name }}-container-disk"
                 volume:
                   containerDisk:
+                    # FIXME : do not rely on this repo => what default could be set?
                     image: "{{ item.image | default('quay.io/jseguillon/kubevirt-images:centos-7-x86_64-genericcloud-2009') }}"
-                    # path: "{{ item.path | default(omit) }}"
+                    path: "{{ item.image_path | default(omit) }}"
                     imagePullPolicy: "IfNotPresent"
                 disk:
                   bus: virtio
@@ -156,11 +104,6 @@
           register: service
           with_items: "{{ molecule_yml.platforms  }}"
 
-        - name: debug servers
-          debug:
-            msg: "{{ item }}"
-          with_items: "{{ server.results }}"
-
         - name: Flatten services result for use when setting instance_config
           set_fact:
             flatten_services: "{{ service.results | json_query('[].{Name: result.metadata.name, IP: result.spec.clusterIP}') }}"
@@ -170,7 +113,7 @@
             instance_conf_dict: |
               { 'instance': "{{ item.kubevirt_vm.metadata.name }}",
                 'address': "{{ flatten_services | json_query(query) }}",
-                'user': "molecule",
+                'user': "{{ item.user_name | default('molecule') }}",
                 'port': "22",
                 'identity_file':  "{{ molecule_ephemeral_directory }}/identity_{{ item.kubevirt_vm.metadata.name }}"
               }
@@ -179,20 +122,9 @@
           with_items: "{{ server.results }}"
           register: instance_config_dict
 
-        - name: debug instances
-          debug:
-            msg: "{{ instance_conf_dict }}"
-
-        - name: debug ssh port test
-          debug:
-            msg: "{{ flatten_services | json_query(query) }}"
-          vars:
-            query: "[?Name=='{{ item.kubevirt_vm.metadata.name }}'].IP | [0]"
-          with_items: "{{ server.results }}"
-
-        - name: Wait 300 seconds for port 22 to become open
+        - name: Wait for port 22 to become open
           wait_for:
-            timeout: 480
+            timeout: "{{ item.ssh_timeout | default(300) }}"
             port: 22
             host: "{{ flatten_services | json_query(query) }}"
             delay: 10
@@ -204,6 +136,7 @@
         - name: Get some apiV1 statuses
           k8s_info:
             kind: "{{ item }}"
+            namespace: "{{ item.namespace | default('default') }}"
           with_items:
             - Pod
             - Service
@@ -212,6 +145,7 @@
           k8s_info:
             kind: "{{ item }}"
             api: kubevirt.io/v1alpha3
+            namespace: "{{ item.namespace | default('default') }}"
           with_items:
             - VirtualMachine
             - VirtualMachineInstance

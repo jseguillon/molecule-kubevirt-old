@@ -152,7 +152,7 @@ jobs:
       - name: Install virtcl
         run: |
           export ARCH=linux-amd64
-          curl -L -o virtctl https://github.com/jseguillon/kubevirt/releases/download/9.9.0/virtctl-v0.37.0-rc.0-72-g246eb6f22-linux-amd64
+          curl -L -o virtctl https://github.com/kubevirt/kubevirt/releases/download/v0.36.0/virtctl-v0.36.0-linux-amd64
           chmod +x virtctl
           sudo install virtctl /usr/local/bin
         if: ${{ contains(matrix.tox_env, 'py') }}
@@ -160,7 +160,7 @@ jobs:
       - name: Build molecule test container for ${{ matrix.tox_env }}
         run: |
           docker build --build-arg PYTHON_BASE_IMAGE=${{ matrix.PYTHON_BASE_IMAGE }} --build-arg KUBERNETES_VERSION=${{ matrix.KUBERNETES_VERSION }} . --file tools/Dockerfile  -t molecule_kubevirt_${{ matrix.tox_env }}:latest
-          # FIXME : load is slow : set a private registry, as described here https://kind.sigs.k8s.io/docs/user/local-registry/
+          # TODO : kind load is slow : set a private registry, as described here https://kind.sigs.k8s.io/docs/user/local-registry/
           sudo kind load docker-image molecule_kubevirt_${{ matrix.tox_env }}:latest
         if: ${{ contains(matrix.tox_env, 'py') }}
 
@@ -223,11 +223,11 @@ jobs:
           echo "Job launched"
         if: ${{ contains(matrix.tox_env, 'py') }}
 
+      # FIXME : ensure log file has some {{ matrix.job }} to ensure not replacing some from other steps
       - name: Wait for Job to end and log Pods in default namespace
         run: |
           # Wait for Job Pod to start
           sudo kubectl wait --for=condition=ready pods -l job-name=molecule --namespace default
-          # FIXME : virtctl not working when detached => open issue/PR on kubevirt
           ( until sudo kubectl wait --timeout=15m --for=condition=Ready pod -l kubevirt.io=virt-launcher --namespace default; do echo "Waiting console"; sleep 5; done && echo "starting virtctl console" && sudo script -e -c "virtctl console instance" | tee /tmp/virtcl.txt || true ) &
           # Kail sends any logs from default namespace both to stdout and a log file
           ( sudo kail -n default 2>&1 | tee /tmp/kail.log || true ) &
