@@ -25,7 +25,6 @@
     - name: Delete ssh service
       k8s:
         state: absent
-        apiVersion: v1
         kind: Service
         name: "{{ item.name }}-ssh"
         namespace: "{{ item.namespace | default('default') }}"

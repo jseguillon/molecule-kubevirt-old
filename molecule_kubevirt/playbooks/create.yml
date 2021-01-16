@@ -29,7 +29,7 @@
             userdata: |-
               #cloud-config
               users:
-                - name: { item.user_name | default('molecule') }}
+                - name: {{ item.user_name | default('molecule') }}
                   sudo: ALL=(ALL) NOPASSWD:ALL
                   plain_text_passwd: molecule
                   lock_passwd: false
@@ -153,7 +153,7 @@
     - name: Get kubevirt statuses
       k8s_info:
         kind: "{{ item }}"
-        api: kubevirt.io/v1alpha3
+        api_version: kubevirt.io/v1alpha3
         namespace: "{{ item.namespace | default('default') }}"
       with_items:
         - VirtualMachine
