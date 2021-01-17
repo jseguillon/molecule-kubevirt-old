@@ -1,3 +1,4 @@
+#!/bin/bash
 # Kail sends any logs from default namespace
 kail -n default 2>&1 > /tmp/kail.log &
 # Tail the kail log file for output in github actions
