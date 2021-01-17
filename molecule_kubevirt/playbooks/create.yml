@@ -75,7 +75,7 @@
                 volume:
                   containerDisk:
                     # FIXME : do not rely on this repo => what default could be set?
-                    image: "{{ item.image | default('quay.io/jseguillon/kubevirt-images:focal-server-cloudimg-amd64') }}"
+                    image: "{{ item.image | default('quay.io/jseguillon/kubevirt-images:centos-7-x86_64-genericcloud-2009') }}"
                     path: "{{ item.image_path | default(omit) }}"
                     imagePullPolicy: "IfNotPresent"
                 disk:
@@ -153,9 +153,10 @@
 
       rescue:
         - name: Failed to reach ssh port
-          msg: |
-            Something went wrong when trying to ssh to {{ item.kubevirt_vm.metadata.name }}.
-            Please check for Kubevirt logs and virtctl console.
+          fail:
+            msg: |
+              Something went wrong when trying to ssh to {{ item.kubevirt_vm.metadata.name }}.
+              Please check for Kubevirt logs and virtctl console.
 
     - name: Convert instance config dict to a list
       set_fact:
