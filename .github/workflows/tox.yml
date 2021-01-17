@@ -229,7 +229,7 @@ jobs:
           # Wait for Job Pod to start
           sudo kubectl wait --for=condition=ready pods -l job-name=molecule --namespace default
           # Launch log gather script in backgroung
-          (sudo ./tools/gather_logs.sh || true ) &
+          (sudo ${PWD}/tools/gather_logs.sh || true ) &
           # Wait for molecule Job to delete configmap and notify one Job Pod as ran till the end
           sudo kubectl wait --for delete --timeout=20m  configmap/molecule-job-running
           # Get molecule tests results
