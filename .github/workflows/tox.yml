@@ -228,15 +228,16 @@ jobs:
         run: |
           # Wait for Job Pod to start
           sudo kubectl wait --for=condition=ready pods -l job-name=molecule --namespace default
-          # FIXME : first send this code to shell script plus then maybe find a way with additional tracker Pod
-          ( until sudo kubectl wait --timeout=15m --for=condition=Ready pod -l kubevirt.io=virt-launcher --namespace default; do echo "Waiting console"; sleep 5; done && echo "starting virtctl console" && sudo script -e -c "virtctl console instance" | tee /tmp/virtcl.txt || true ) &
-          # Kail sends any logs from default namespace both to stdout and a log file
-          ( sudo kail -n default 2>&1 | tee /tmp/kail.log || true ) &
+          # Launch log gather script in backgroung
+          (sudo ./tools/gather_logs.sh || true ) &
           # Wait for molecule Job to delete configmap and notify one Job Pod as ran till the end
           sudo kubectl wait --for delete --timeout=20m  configmap/molecule-job-running
-          # Exit of github action is the one set by molecule job in config map result
-          # FIXME not sure its working for exit code part
-          exit $(sudo kubectl get configmap molecule-result -o "jsonpath={.data['exitCode']}")
+          # Get molecule tests results
+          $(sudo kubectl get configmap molecule-result -o "jsonpath={.data['exitCode']}")
+          MOLECULE_RESULT=$(kubectl get configmap molecule-result -o "jsonpath={.data['exitCode']}")
+          if [ ! "${MOLECULE_RESULT}" == "0" ]; then echo "Test non ok : ${MOLECULE_RESULT}"; exit 1; fi
+
+
         if: ${{ contains(matrix.tox_env, 'py') }}
 
       # FIXME : if always ?
@@ -244,7 +245,6 @@ jobs:
         if: always()
         run: |
           mkdir -p ${LOG_DIR} || true
-          sleep 30;
           sudo kubectl get events > ${LOG_DIR}/events.txt || true
           sudo kubectl describe jobs > ${LOG_DIR}/jobs.txt || true
           sudo kubectl describe cm > ${LOG_DIR}/cm.txt || true
@@ -256,14 +256,14 @@ jobs:
           sudo journalctl | cat > ${LOG_DIR}/journalctl.txt || true
           sudo chown -R $USER:$USER ${LOG_DIR} || true
         env:
-          LOG_DIR: /tmp/molecule-kubevirt-${{ matrix.tox_env }}-${{ env.JOB_NAME }}-${{ github.run_id }}/logs
+          LOG_DIR: /tmp/molecule-kubevirt/logs
 
       - name: Upload logs
         if: always()
         uses: actions/upload-artifact@v2
         with:
-          name: molecule-kubevirt-${{ matrix.tox_env }}-${{ env.JOB_NAME }}-${{ github.run_id }}
-          path: /tmp/molecule-kubevirt-${{ matrix.tox_env }}-${{ env.JOB_NAME }}-${{ github.run_id }}/logs
+          name: molecule-kubevirt-${{ matrix.tox_env }}-${{ github.run_id }}
+          path: /tmp/molecule-kubevirt/logs
 
   publish:
     name: Publish to PyPI registry

@@ -75,7 +75,7 @@
                 volume:
                   containerDisk:
                     # FIXME : do not rely on this repo => what default could be set?
-                    image: "{{ item.image | default('quay.io/jseguillon/kubevirt-images:dummy-fail') }}"
+                    image: "{{ item.image | default('quay.io/jseguillon/kubevirt-images:centos-7-x86_64-genericcloud-2009') }}"
                     path: "{{ item.image_path | default(omit) }}"
                     imagePullPolicy: "IfNotPresent"
                 disk:
@@ -98,7 +98,6 @@
           fail:
             msg: "{{ vm_info }}"
 
-    # FIXME : offer option for no service 
     - name: Create ssh service
       k8s:
         state: present
