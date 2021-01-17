@@ -118,23 +118,16 @@
       register: service
       with_items: "{{ molecule_yml.platforms  }}"
 
-    - name: Flatten services result for use when setting instance_config
-      set_fact:
-        flatten_services: "{{ service.results | json_query('[].{Name: result.metadata.name, IP: result.spec.clusterIP}') }}"
-
-
+    # Via Kubernetes Services, VM can be accessed via its name.namespace.svc
     - name: Populate instance config dict
       set_fact:
         instance_conf_dict: |
           { 'instance': "{{ item.kubevirt_vm.metadata.name }}",
-            'address': "{{ flatten_services | json_query(query) }}",
+            'address': "{{ item.kubevirt_vm.metadata.name.{{ item.kubevirt_vm.metadata.namespace }}.svc",
             'user': "{{ item.user_name | default('molecule') }}",
             'port': "22",
             'identity_file':  "{{ molecule_ephemeral_directory }}/identity_{{ item.kubevirt_vm.metadata.name }}"
           }
-      # FIXME : set this query result as fact to avoid duplicate code. plus give option to use Service (default true)
-      vars:
-        query: "[?Name=='{{ item.kubevirt_vm.metadata.name }}'].IP | [0]"
       with_items: "{{ server.results }}"
       register: instance_config_dict
 
@@ -144,11 +137,9 @@
           wait_for:
             timeout: "{{ item.ssh_timeout | default(300) }}"
             port: 22
-            host: "{{ flatten_services | json_query(query) }}"
+            host: "{{ item.address }}"
             delay: 10
-          vars:
-            query: "[?Name=='{{ item.kubevirt_vm.metadata.name }}'].IP | [0]"
-          with_items: "{{ server.results }}"
+          with_items: "{{ instance_config_dict }}"
 
       rescue:
         - name: Failed to reach ssh port
