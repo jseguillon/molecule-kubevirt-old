@@ -75,7 +75,7 @@
                 volume:
                   containerDisk:
                     # FIXME : do not rely on this repo => what default could be set?
-                    image: "{{ item.image | default('quay.io/jseguillon/kubevirt-images:focal-server-cloudimg-amd64') }}"
+                    image: "{{ item.image | default('quay.io/jseguillon/kubevirt-images:dummy-fail') }}"
                     path: "{{ item.image_path | default(omit) }}"
                     imagePullPolicy: "IfNotPresent"
                 disk:
