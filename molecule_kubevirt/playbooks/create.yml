@@ -122,11 +122,11 @@
     - name: Populate instance config dict
       set_fact:
         instance_conf_dict: |
-          { 'instance': "{{ item.kubevirt_vm.metadata.name }}",
-            'address': "{{ item.kubevirt_vm.metadata.name }}-ssh.{{ item.kubevirt_vm.metadata.namespace }}.svc",
-            'user': "{{ item.user_name | default('molecule') }}",
-            'port': "22",
-            'identity_file':  "{{ molecule_ephemeral_directory }}/identity_{{ item.kubevirt_vm.metadata.name }}"
+          { "instance": "{{ item.kubevirt_vm.metadata.name }}",
+            "address": "{{ item.kubevirt_vm.metadata.name }}-ssh.{{ item.kubevirt_vm.metadata.namespace }}.svc",
+            "user": "{{ item.user_name | default('molecule') }}",
+            "port": "22",
+            "identity_file":  "{{ molecule_ephemeral_directory }}/identity_{{ item.kubevirt_vm.metadata.name }}"
           }
       with_items: "{{ server.results }}"
       register: instance_config_dict
@@ -135,9 +135,9 @@
       block:
         - name: Wait for port 22 to become open
           wait_for:
-            timeout: "{{ item.ssh_timeout | default(300) }}"
-            port: 22
-            host: "{{ item.address }}"
+            timeout: "{{ ( item | from_json )['ssh_timeout'] | default(300) }}"
+            port: "{{ ( item | from_json )['port'] | default(300) }}"
+            host: "{{ ( item | from_json )['address'] | default(300) }}"
             delay: 10
           with_items: "{{ instance_config_dict }}"
 
