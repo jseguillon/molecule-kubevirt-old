@@ -75,7 +75,7 @@
                 volume:
                   containerDisk:
                     # FIXME : do not rely on this repo => what default could be set?
-                    image: "{{ item.image | default('quay.io/jseguillon/dumyfail') }}"
+                    image: "{{ item.image | default('quay.io/jseguillon/kubevirt-images:centos-7-x86_64-genericcloud-2009') }}"
                     path: "{{ item.image_path | default(omit) }}"
                     imagePullPolicy: "IfNotPresent"
                 disk:
@@ -118,12 +118,12 @@
       register: service
       with_items: "{{ molecule_yml.platforms  }}"
 
-    # Via Kubernetes Services, VM can be accessed via its name.namespace.svc
+    # Via Kubernetes Services, VM can be accessed via its name-ssh.namespace.svc
     - name: Populate instance config dict
       set_fact:
         instance_conf_dict: |
           { 'instance': "{{ item.kubevirt_vm.metadata.name }}",
-            'address': "{{ item.kubevirt_vm.metadata.name.{{ item.kubevirt_vm.metadata.namespace }}.svc",
+            'address': "{{ item.kubevirt_vm.metadata.name }}-ssh.{{ item.kubevirt_vm.metadata.namespace }}.svc",
             'user': "{{ item.user_name | default('molecule') }}",
             'port': "22",
             'identity_file':  "{{ molecule_ephemeral_directory }}/identity_{{ item.kubevirt_vm.metadata.name }}"
