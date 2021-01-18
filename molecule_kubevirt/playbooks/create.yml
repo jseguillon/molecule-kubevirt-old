@@ -118,22 +118,13 @@
       register: service
       with_items: "{{ molecule_yml.platforms  }}"
 
-    - name: debug
-      debug:
-        msg: "{{ instance_config_dict }} "
-
-    - name: debug2
-      debug:
-        msg: "{{ item }} "
-      with_items: "{{ instance_config_dict.results }} "
-              
-    # Via Kubernetes Services, VM can be accessed via its name-ssh.namespace.svc
+    # Via Kubernetes Services, VM can be accessed via its name.namespace.svc
     # FIXME : this code from vagrant molecule may not be the best for kubevirt
     - name: Populate instance config dict
       set_fact:
         instance_conf_dict: |
           { "instance": "{{ item.kubevirt_vm.metadata.name }}",
-            "address": "{{ item.kubevirt_vm.metadata.name }}-ssh.{{ item.kubevirt_vm.metadata.namespace }}.svc",
+            "address": "{{ item.kubevirt_vm.metadata.name }}.{{ item.kubevirt_vm.metadata.namespace }}.svc",
             "user": "{{ item.user_name | default('molecule') }}",
             "port": "22",
             "identity_file":  "{{ molecule_ephemeral_directory }}/identity_{{ item.kubevirt_vm.metadata.name }}"
@@ -145,11 +136,16 @@
       set_fact:
         instance_conf: "{{ instance_config_dict.results | map(attribute='ansible_facts.instance_conf_dict') | list }}"
 
+    - name: Dump instance config
+      copy:
+        content: "{{ instance_conf | to_json | from_json | to_yaml }}"
+        dest: "{{ molecule_instance_config }}"
+        mode: 0600
+
     - name: Test ssh access
       wait_for:
-        timeout: "{{ item['ssh_timeout'] | default('300') }}"
-        port: "{{ item['port'] | default('22') }}"
-        host: "{{ item['address'] }}"
+        timeout: "{{ item['ansible_facts']['instance_conf_dict']['ssh_timeout'] | default('300') }}"
+        port: "{{ item['ansible_facts']['instance_conf_dict']['port'] | default('22') }}"
+        host: "{{ item['ansible_facts']['instance_conf_dict']['address'] }}"
         delay: 10
       with_items: "{{ instance_config_dict.results }}"
-
