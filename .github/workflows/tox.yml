@@ -244,11 +244,11 @@ jobs:
         if: always()
         run: |
           mkdir -p ${LOG_DIR} || true
-          sudo kubectl get events > ${LOG_DIR}/events.txt || true
-          sudo kubectl describe jobs > ${LOG_DIR}/jobs.txt || true
-          sudo kubectl describe cm > ${LOG_DIR}/cm.txt || true
-          cp /tmp/kail.log ${LOG_DIR} || true
-          cp /tmp/describes.txt ${LOG_DIR} || true
+          sudo kubectl get events | tee ${LOG_DIR}/events.txt || true
+          sudo kubectl describe jobs | tee  ${LOG_DIR}/jobs.txt || true
+          sudo kubectl describe cm | tee ${LOG_DIR}/cm.txt || true
+          sudo cp /tmp/kail.log ${LOG_DIR} || true
+          sudo cp /tmp/describes.txt ${LOG_DIR} || true
           sudo  cp /tmp/virtcl.txt ${LOG_DIR} || true
           sudo dmesg > ${LOG_DIR}/dmesg.txt || true
           sudo kind export logs ${LOG_DIR} || true
