@@ -193,7 +193,6 @@ jobs:
           sudo kubectl create -f tools/test-rolebinding.yaml
           # Configmap will be witinig untill it is deleted, telling one Pod ended the Job
           sudo kubectl create configmap molecule-job-running --from-literal status=Started
-          pwd
         if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Start test Job
@@ -227,9 +226,6 @@ jobs:
       # FIXME : ensure log file has some {{ matrix.job }} to ensure not replacing some from other steps
       - name: Wait for Job to end and log Pods in default namespace
         run: |
-          pwd
-          ls
-          ls -al tools
           # Wait for Job Pod to start
           sudo kubectl wait --for=condition=ready pods -l job-name=molecule --namespace default
           # Launch log gather script in backgroung
@@ -237,8 +233,7 @@ jobs:
           # Wait for molecule Job to delete configmap and notify one Job Pod as ran till the end
           sudo kubectl wait --for delete --timeout=20m  configmap/molecule-job-running
           # Get molecule tests results
-          $(sudo kubectl get configmap molecule-result -o "jsonpath={.data['exitCode']}")
-          MOLECULE_RESULT=$(kubectl get configmap molecule-result -o "jsonpath={.data['exitCode']}")
+          MOLECULE_RESULT=$(sudo kubectl get configmap molecule-result -o "jsonpath={.data['exitCode']}")
           if [ ! "${MOLECULE_RESULT}" == "0" ]; then echo "Test non ok : ${MOLECULE_RESULT}"; exit 1; fi
 
 
