@@ -71,11 +71,12 @@ jobs:
           ${{ matrix.PREFIX }} tox -e ${{ matrix.tox_env }}
         if: ${{ ! contains(matrix.tox_env, 'py') }}
 
-      - name: Enable ipv4 and ipv6 forwarding
-        run: |
-          sudo sysctl -w net.ipv6.conf.all.forwarding=1
-          sudo sysctl -w net.ipv4.ip_forward=1
-        if: ${{ contains(matrix.tox_env, 'py') }}
+      # FIXME : add some  retries
+      # - name: Enable ipv4 and ipv6 forwarding
+      #   run: |
+      #     sudo sysctl -w net.ipv6.conf.all.forwarding=1
+      #     sudo sysctl -w net.ipv4.ip_forward=1
+      #   if: ${{ contains(matrix.tox_env, 'py') }}
 
       # TODO : split
       - name: Install docker
