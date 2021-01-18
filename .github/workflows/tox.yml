@@ -244,9 +244,14 @@ jobs:
         if: always()
         run: |
           mkdir -p ${LOG_DIR} || true
+          echo "** Events"
           sudo kubectl get events | tee ${LOG_DIR}/events.txt || true
+          echo "** Jobs"
           sudo kubectl describe jobs | tee  ${LOG_DIR}/jobs.txt || true
+          echo "** Configmap"
           sudo kubectl describe cm | tee ${LOG_DIR}/cm.txt || true
+          echo "** Logs"
+          sudo cat tail -f /tmp/kail.log &
           sudo cp /tmp/kail.log ${LOG_DIR} || true
           sudo cp /tmp/describes.txt ${LOG_DIR} || true
           sudo  cp /tmp/virtcl.txt ${LOG_DIR} || true

@@ -39,7 +39,7 @@
 
     - name: Create VM block
       block:
-        - name: Create virtual machine 'myvm' and start it
+        - name: Create virtual machine and start it
           community.general.kubevirt_vm:
             state: running
             wait: true
@@ -118,7 +118,17 @@
       register: service
       with_items: "{{ molecule_yml.platforms  }}"
 
+    - name: debug
+      debug:
+        msg: "{{ instance_config_dict }} "
+
+    - name: debug2
+      debug:
+        msg: "{{ item }} "
+      with_items: "{{ instance_config_dict.results }} "
+              
     # Via Kubernetes Services, VM can be accessed via its name-ssh.namespace.svc
+    # FIXME : this code from vagrant molecule may not be the best for kubevirt
     - name: Populate instance config dict
       set_fact:
         instance_conf_dict: |
@@ -131,23 +141,15 @@
       with_items: "{{ server.results }}"
       register: instance_config_dict
 
-    - name: Test ssh access
-      block:
-        - name: Wait for port 22 to become open
-          wait_for:
-            timeout: "{{ ( item | from_json )['ssh_timeout'] | default(300) }}"
-            port: "{{ ( item | from_json )['port'] | default(300) }}"
-            host: "{{ ( item | from_json )['address'] | default(300) }}"
-            delay: 10
-          with_items: "{{ instance_config_dict }}"
-
-      rescue:
-        - name: Failed to reach ssh port
-          fail:
-            msg: |
-              Something went wrong when trying to ssh to {{ item.kubevirt_vm.metadata.name }}.
-              Please check for Kubevirt logs and virtctl console.
-
     - name: Convert instance config dict to a list
       set_fact:
         instance_conf: "{{ instance_config_dict.results | map(attribute='ansible_facts.instance_conf_dict') | list }}"
+
+    - name: Test ssh access
+      wait_for:
+        timeout: "{{ item['ssh_timeout'] | default('300') }}"
+        port: "{{ item['port'] | default('22') }}"
+        host: "{{ item['address'] }}"
+        delay: 10
+      with_items: "{{ instance_config_dict.results }}"
+
