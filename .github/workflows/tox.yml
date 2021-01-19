@@ -71,11 +71,11 @@ jobs:
           ${{ matrix.PREFIX }} tox -e ${{ matrix.tox_env }}
         if: ${{ ! contains(matrix.tox_env, 'py') }}
 
-      - name: Enable ipv4 and ipv6 forwarding
-        run: |
-          sudo sysctl -w net.ipv6.conf.all.forwarding=1
-          sudo sysctl -w net.ipv4.ip_forward=1
-        if: ${{ contains(matrix.tox_env, 'py') }}
+      # - name: Enable ipv4 and ipv6 forwarding
+      #   run: |
+      #     sudo sysctl -w net.ipv6.conf.all.forwarding=1
+      #     sudo sysctl -w net.ipv4.ip_forward=1
+      #   if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Update packages index
         run: |
@@ -89,7 +89,7 @@ jobs:
           sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
           sudo apt-get update
           sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
-          sudo apt install -y qemu qemu-kvm libvirt-daemon libvirt-clients bridge-utils virt-manager libvirt-daemon-system dnsmasq
+          sudo apt install -y qemu qemu-kvm libvirt-daemon libvirt-clients bridge-utils virt-manager libvirt-daemon-system
           sudo systemctl restart libvirtd
           # Install network
           sudo mkdir -p /etc/cni/net.d
@@ -272,7 +272,7 @@ jobs:
           if [ ! "${MOLECULE_RESULT}" == "0" ]; then echo "Test non ok : ${MOLECULE_RESULT}"; exit 1; fi
         if: ${{ contains(matrix.tox_env, 'py') }}
 
-      - name: Export logs
+      - name: Dump and export logs
         if: always()
         run: |
           mkdir -p ${LOG_DIR} || true
