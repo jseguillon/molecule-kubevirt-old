@@ -31,6 +31,7 @@ log = logger.get_logger(__name__)
 class KubeVirt(Driver):
     """
     Kubevirt Driver Class.
+    ! Very alpha version - All configuration fields and behaviours may be subject to breaking changes !
 
     The class responsible for managing `Docker`_ containers.  `Docker`_ is
     the default driver used in Molecule.
