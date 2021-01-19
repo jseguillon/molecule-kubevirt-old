@@ -81,24 +81,6 @@ jobs:
         run: |
           sudo apt-get update
 
-      # TODO : split
-      - name: Install docker
-        run: |
-          . /etc/os-release
-          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-          sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-          sudo apt-get update
-          sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
-          sudo apt install -y qemu qemu-kvm libvirt-daemon libvirt-clients bridge-utils virt-manager libvirt-daemon-system
-          sudo systemctl restart libvirtd
-          # Install network
-          sudo mkdir -p /etc/cni/net.d
-          # curl -qsSL https://raw.githubusercontent.com/containers/libpod/master/cni/87-podman-bridge.conflist | sudo tee /etc/cni/net.d/87-podman-bridge.conf
-          curl -qsSL https://github.com/containernetworking/plugins/releases/download/v0.8.6/cni-plugins-linux-amd64-v0.8.6.tgz --output /tmp/cni.tgz
-          sudo mkdir -p /usr/libexec/cni
-          sudo tar -C /usr/libexec/cni -xvzf /tmp/cni.tgz
-        if: ${{ contains(matrix.tox_env, 'py') }}
-
       - name: Tune system
         run: |
           . /etc/os-release
@@ -160,11 +142,6 @@ jobs:
 
       - name: Install Kubevirt packages requirements
         run: |
-          . /etc/os-release
-          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-          sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-          sudo apt-get update
-          sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
           sudo apt install -y qemu qemu-kvm libvirt-daemon libvirt-clients bridge-utils virt-manager libvirt-daemon-system dnsmasq
           sudo systemctl restart libvirtd
         if: ${{ contains(matrix.tox_env, 'py') }}
