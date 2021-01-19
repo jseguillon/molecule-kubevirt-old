@@ -1,6 +1,6 @@
 #!/bin/bash
 # Kail sends any logs from default namespace
-sudo kail -n default 2>&1 > tee /tmp/kail.log &
+sudo kail -n default 2>&1 > /tmp/kail.log &
 
 # Backgroung wait for Pod reflecting VM to be reday then log console
 until kubectl wait --timeout=15m --for=condition=Ready pod -l kubevirt.io=virt-launcher --namespace default;
