@@ -1,5 +1,3 @@
-*** THIS IS A Proof Of Concept PLEASE DONT TRUST any DOC ***
-
 ************************
 Molecule kubevirt Plugin
 ************************

@@ -77,17 +77,14 @@ jobs:
           sudo sysctl -w net.ipv4.ip_forward=1
         if: ${{ contains(matrix.tox_env, 'py') }}
 
+      - name: Update packages index
+        run: |
+          sudo apt-get update
+
       # TODO : split
       - name: Install docker
         run: |
           . /etc/os-release
-          ## FIXME Workaround for https://github.com/kubernetes/kubernetes/issues/61058
-          ### And https://github.com/LiliC/travis-minikube/blob/e0f26f7b388057f51a0e2558afd5f990e07b6c49/.travis.yml#L11
-          sudo mount --make-rshared /
-          ### conntrack is required by kube 1.18
-          sudo apt-get update
-          sudo apt-get install -y conntrack
-          # sudo systemctl stop apparmor
           curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
           sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
           sudo apt-get update
@@ -102,14 +99,24 @@ jobs:
           sudo tar -C /usr/libexec/cni -xvzf /tmp/cni.tgz
         if: ${{ contains(matrix.tox_env, 'py') }}
 
-      - name: Tweak Ubuntu apparmor
+      - name: Tune system
         run: |
-          sudo cat /etc/apparmor.d/usr.sbin.libvirtd
-          tweak_qemu_apprarmor="$(head -n -1 /etc/apparmor.d/usr.sbin.libvirtd; echo "  /usr/libexec/qemu-kvm rmix,"; tail -1 /etc/apparmor.d/usr.sbin.libvirtd)"
-          echo "$tweak_qemu_apprarmor"
-          echo "$tweak_qemu_apprarmor" | sudo dd of=/etc/apparmor.d/usr.sbin.libvirtd
-          sudo cat /etc/apparmor.d/usr.sbin.libvirtd
-          sudo systemctl reload apparmor.service
+          . /etc/os-release
+          ## FIXME Workaround for https://github.com/kubernetes/kubernetes/issues/61058
+          ### And https://github.com/LiliC/travis-minikube/blob/e0f26f7b388057f51a0e2558afd5f990e07b6c49/.travis.yml#L11
+          sudo mount --make-rshared /
+          ### conntrack is required by kube 1.18
+          sudo apt-get update
+          sudo apt-get install -y conntrack
+        if: ${{ contains(matrix.tox_env, 'py') }}
+
+      - name: Install docker
+        run: |
+          . /etc/os-release
+          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+          sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+          sudo apt-get update
+          sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
         if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Install kubectl
@@ -124,7 +131,16 @@ jobs:
           sudo install kind /usr/local/bin
         if: ${{ contains(matrix.tox_env, 'py') }}
 
-      - name: Create single node cluster
+      - name: Install Kubernetes CNIs
+        run: |
+          sudo mkdir -p /etc/cni/net.d
+          # curl -qsSL https://raw.githubusercontent.com/containers/libpod/master/cni/87-podman-bridge.conflist | sudo tee /etc/cni/net.d/87-podman-bridge.conf
+          curl -qsSL https://github.com/containernetworking/plugins/releases/download/v0.8.6/cni-plugins-linux-amd64-v0.8.6.tgz --output /tmp/cni.tgz
+          sudo mkdir -p /usr/libexec/cni
+          sudo tar -C /usr/libexec/cni -xvzf /tmp/cni.tgz
+        if: ${{ contains(matrix.tox_env, 'py') }}
+
+      - name: Create single node Cluster
         run: |
           cat <<EOF | sudo kind create cluster -v7 --wait 1m --retain --config=-
           kind: Cluster
@@ -140,6 +156,26 @@ jobs:
           sudo kubectl wait --for=condition=ready pods --namespace=kube-system -l k8s-app=kube-dns
           sudo kubectl get nodes -o wide
           sudo kubectl get pods -A
+        if: ${{ contains(matrix.tox_env, 'py') }}
+
+      - name: Install Kubevirt packages requirements
+        run: |
+          . /etc/os-release
+          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+          sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+          sudo apt-get update
+          sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
+          sudo apt install -y qemu qemu-kvm libvirt-daemon libvirt-clients bridge-utils virt-manager libvirt-daemon-system dnsmasq
+          sudo systemctl restart libvirtd
+        if: ${{ contains(matrix.tox_env, 'py') }}
+
+      - name: Tweak Ubuntu apparmor for Kubevirt
+        run: |
+          # See : https://github.com/kubevirt/kubevirt/issues/4303
+          # Add one magic line and reload service
+          tweak_qemu_apprarmor="$(head -n -1 /etc/apparmor.d/usr.sbin.libvirtd; echo "  /usr/libexec/qemu-kvm rmix,"; tail -1 /etc/apparmor.d/usr.sbin.libvirtd)"
+          echo "$tweak_qemu_apprarmor" | sudo dd of=/etc/apparmor.d/usr.sbin.libvirtd
+          sudo systemctl reload apparmor.service
         if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Install kubevirt
@@ -223,7 +259,6 @@ jobs:
           echo "Job launched"
         if: ${{ contains(matrix.tox_env, 'py') }}
 
-      # FIXME : ensure log file has some {{ matrix.job }} to ensure not replacing some from other steps
       - name: Wait for Job to end and log Pods in default namespace
         run: |
           # Wait for Job Pod to start
@@ -235,11 +270,8 @@ jobs:
           # Get molecule tests results
           MOLECULE_RESULT=$(sudo kubectl get configmap molecule-result -o "jsonpath={.data['exitCode']}")
           if [ ! "${MOLECULE_RESULT}" == "0" ]; then echo "Test non ok : ${MOLECULE_RESULT}"; exit 1; fi
-
-
         if: ${{ contains(matrix.tox_env, 'py') }}
 
-      # FIXME : if always ?
       - name: Export logs
         if: always()
         run: |
