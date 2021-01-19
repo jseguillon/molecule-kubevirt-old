@@ -107,14 +107,14 @@ jobs:
           sudo install kind /usr/local/bin
         if: ${{ contains(matrix.tox_env, 'py') }}
 
-      # - name: Install kubernetes CNIs
-      #   run: |
-      #     sudo mkdir -p /etc/cni/net.d
-      #     # curl -qsSL https://raw.githubusercontent.com/containers/libpod/master/cni/87-podman-bridge.conflist | sudo tee /etc/cni/net.d/87-podman-bridge.conf
-      #     curl -qsSL https://github.com/containernetworking/plugins/releases/download/v0.8.6/cni-plugins-linux-amd64-v0.8.6.tgz --output /tmp/cni.tgz
-      #     sudo mkdir -p /usr/libexec/cni
-      #     sudo tar -C /usr/libexec/cni -xvzf /tmp/cni.tgz
-      #   if: ${{ contains(matrix.tox_env, 'py') }}
+      - name: Install kubernetes CNIs
+        run: |
+          sudo mkdir -p /etc/cni/net.d
+          # curl -qsSL https://raw.githubusercontent.com/containers/libpod/master/cni/87-podman-bridge.conflist | sudo tee /etc/cni/net.d/87-podman-bridge.conf
+          curl -qsSL https://github.com/containernetworking/plugins/releases/download/v0.8.6/cni-plugins-linux-amd64-v0.8.6.tgz --output /tmp/cni.tgz
+          sudo mkdir -p /usr/libexec/cni
+          sudo tar -C /usr/libexec/cni -xvzf /tmp/cni.tgz
+        if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Create single node Cluster
         run: |
@@ -248,6 +248,7 @@ jobs:
       - name: Dump and export logs
         if: always()
         run: |
+          mkdir -p ${LOG_DIR} || true
           echo "** Events"
           sudo kubectl get events | tee ${LOG_DIR}/events.txt || true
           echo "** Jobs"
@@ -255,8 +256,7 @@ jobs:
           echo "** Configmap"
           sudo kubectl describe cm | tee ${LOG_DIR}/cm.txt || true
           echo "** Console log"
-          sudo cat /tmp/virtcl.txt
-          mkdir -p ${LOG_DIR} || true
+          sudo cat /tmp/virtcl.txt || true
           sudo cp /tmp/kail.log ${LOG_DIR} || true
           sudo cp /tmp/describes.txt ${LOG_DIR} || true
           sudo cp /tmp/virtcl.txt ${LOG_DIR} || true
