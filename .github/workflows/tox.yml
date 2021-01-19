@@ -71,12 +71,6 @@ jobs:
           ${{ matrix.PREFIX }} tox -e ${{ matrix.tox_env }}
         if: ${{ ! contains(matrix.tox_env, 'py') }}
 
-      # - name: Enable ipv4 and ipv6 forwarding
-      #   run: |
-      #     sudo sysctl -w net.ipv6.conf.all.forwarding=1
-      #     sudo sysctl -w net.ipv4.ip_forward=1
-      #   if: ${{ contains(matrix.tox_env, 'py') }}
-
       - name: Update packages index
         run: |
           sudo apt-get update
@@ -113,14 +107,14 @@ jobs:
           sudo install kind /usr/local/bin
         if: ${{ contains(matrix.tox_env, 'py') }}
 
-      - name: Install Kubernetes CNIs
-        run: |
-          sudo mkdir -p /etc/cni/net.d
-          # curl -qsSL https://raw.githubusercontent.com/containers/libpod/master/cni/87-podman-bridge.conflist | sudo tee /etc/cni/net.d/87-podman-bridge.conf
-          curl -qsSL https://github.com/containernetworking/plugins/releases/download/v0.8.6/cni-plugins-linux-amd64-v0.8.6.tgz --output /tmp/cni.tgz
-          sudo mkdir -p /usr/libexec/cni
-          sudo tar -C /usr/libexec/cni -xvzf /tmp/cni.tgz
-        if: ${{ contains(matrix.tox_env, 'py') }}
+      # - name: Install kubernetes CNIs
+      #   run: |
+      #     sudo mkdir -p /etc/cni/net.d
+      #     # curl -qsSL https://raw.githubusercontent.com/containers/libpod/master/cni/87-podman-bridge.conflist | sudo tee /etc/cni/net.d/87-podman-bridge.conf
+      #     curl -qsSL https://github.com/containernetworking/plugins/releases/download/v0.8.6/cni-plugins-linux-amd64-v0.8.6.tgz --output /tmp/cni.tgz
+      #     sudo mkdir -p /usr/libexec/cni
+      #     sudo tar -C /usr/libexec/cni -xvzf /tmp/cni.tgz
+      #   if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Create single node Cluster
         run: |
@@ -140,13 +134,13 @@ jobs:
           sudo kubectl get pods -A
         if: ${{ contains(matrix.tox_env, 'py') }}
 
-      - name: Install Kubevirt packages requirements
+      - name: Install kubevirt packages requirements
         run: |
           sudo apt install -y qemu qemu-kvm libvirt-daemon libvirt-clients bridge-utils virt-manager libvirt-daemon-system dnsmasq
           sudo systemctl restart libvirtd
         if: ${{ contains(matrix.tox_env, 'py') }}
 
-      - name: Tweak Ubuntu apparmor for Kubevirt
+      - name: Tweak ubuntu apparmor for Kubevirt
         run: |
           # See : https://github.com/kubevirt/kubevirt/issues/4303
           # Add one magic line and reload service
@@ -189,7 +183,7 @@ jobs:
           sudo install kail /usr/local/bin
         if: ${{ contains(matrix.tox_env, 'py') }}
 
-      - name: Wait and get Kubevirt status
+      - name: Wait and get kubevirt status
         run: |
           # wait network is ready
           sudo kubectl wait --for=condition=ready pods --namespace=kubevirt -l kubevirt.io=virt-operator
