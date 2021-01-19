@@ -232,11 +232,13 @@ jobs:
 
       - name: Wait for Job to end and log Pods in default namespace
         run: |
-          # Wait for Job Pod to start
+          # Kail monitor any logs from default namespace
+          sudo kail -n default 2>&1 | tee /tmp/kail.log &
+          # Wait for molecule Job Pod to start
           sudo kubectl wait --for=condition=ready pods -l job-name=molecule --namespace default
-          # Launch log gather script in backgroung
-          (sudo tools/gather_logs.sh || true ) &
-          # Wait for molecule Job to delete configmap and notify one Job Pod as ran till the end
+          # Launch virtctl console log script in backgroung
+          (sudo tools/log_console.sh || true ) &
+          # Wait for molecule Job to delete configmap, notifying one Job Pod ran till the end, whatever the result
           sudo kubectl wait --for delete --timeout=20m  configmap/molecule-job-running
           # Get molecule tests results
           MOLECULE_RESULT=$(sudo kubectl get configmap molecule-result -o "jsonpath={.data['exitCode']}")
@@ -246,18 +248,18 @@ jobs:
       - name: Dump and export logs
         if: always()
         run: |
-          mkdir -p ${LOG_DIR} || true
           echo "** Events"
           sudo kubectl get events | tee ${LOG_DIR}/events.txt || true
           echo "** Jobs"
           sudo kubectl describe jobs | tee  ${LOG_DIR}/jobs.txt || true
           echo "** Configmap"
           sudo kubectl describe cm | tee ${LOG_DIR}/cm.txt || true
-          echo "** Logs"
-          sudo cat tail -f /tmp/kail.log &
+          echo "** Console log"
+          sudo cat /tmp/virtcl.txt
+          mkdir -p ${LOG_DIR} || true
           sudo cp /tmp/kail.log ${LOG_DIR} || true
           sudo cp /tmp/describes.txt ${LOG_DIR} || true
-          sudo  cp /tmp/virtcl.txt ${LOG_DIR} || true
+          sudo cp /tmp/virtcl.txt ${LOG_DIR} || true
           sudo dmesg > ${LOG_DIR}/dmesg.txt || true
           sudo kind export logs ${LOG_DIR} || true
           sudo journalctl | cat > ${LOG_DIR}/journalctl.txt || true
