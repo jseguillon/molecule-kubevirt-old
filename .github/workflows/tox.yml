@@ -96,12 +96,6 @@ jobs:
           sudo install kind /usr/local/bin
         if: ${{ contains(matrix.tox_env, 'py') }}
 
-      - name: Enable ipv4 and ipv6 forwarding
-        run: |
-          sudo sysctl -w net.ipv6.conf.all.forwarding=1
-          sudo sysctl -w net.ipv4.ip_forward=1
-        if: ${{ contains(matrix.tox_env, 'py') }}
-
       - name: Install kubernetes CNIs
         run: |
           sudo mkdir -p /etc/cni/net.d
