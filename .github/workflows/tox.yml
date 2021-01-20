@@ -60,9 +60,13 @@ jobs:
         if: ${{ ! contains(matrix.tox_env, 'py') }}
 
       - name: Install dependencies
-        run: |
-          python -m pip install -U pip
-          pip install tox
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            python -m pip install -U pip
+            pip install tox
         if: ${{ ! contains(matrix.tox_env, 'py') }}
 
       - name: Run tox -e ${{ matrix.tox_env }}
@@ -76,24 +80,36 @@ jobs:
           sudo apt-get update
 
       - name: Install docker
-        run: |
-          . /etc/os-release
-          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-          sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-          sudo apt-get update
-          sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            . /etc/os-release
+            curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+            sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+            sudo apt-get update
+            sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
         if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Install kubectl
-        run: |
-          curl -LO https://storage.googleapis.com/kubernetes-release/release/${{ matrix.KUBERNETES_VERSION }}/bin/linux/amd64/kubectl; chmod +x ./kubectl
-          sudo install kubectl /usr/local/bin
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            curl -LO https://storage.googleapis.com/kubernetes-release/release/${{ matrix.KUBERNETES_VERSION }}/bin/linux/amd64/kubectl; chmod +x ./kubectl
+            sudo install kubectl /usr/local/bin
         if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Install kind
-        run: |
-          curl -Lo ./kind "https://kind.sigs.k8s.io/dl/v0.9.0/kind-$(uname)-amd64" && chmod +x ./kind
-          sudo install kind /usr/local/bin
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            curl -Lo ./kind "https://kind.sigs.k8s.io/dl/v0.9.0/kind-$(uname)-amd64" && chmod +x ./kind
+            sudo install kind /usr/local/bin
         if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Enable ipv4 and ipv6 forwarding
@@ -145,18 +161,26 @@ jobs:
         if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Install kubevirt
-        run: |
-          sudo kubectl create -f https://github.com/kubevirt/kubevirt/releases/download/v0.36.0/kubevirt-operator.yaml
-          sudo kubectl create configmap kubevirt-config -n kubevirt --from-literal debug.useEmulation=true
-          sudo kubectl create -f https://github.com/kubevirt/kubevirt/releases/download/v0.36.0/kubevirt-cr.yaml
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            sudo kubectl create -f https://github.com/kubevirt/kubevirt/releases/download/v0.36.0/kubevirt-operator.yaml
+            sudo kubectl create configmap kubevirt-config -n kubevirt --from-literal debug.useEmulation=true
+            sudo kubectl create -f https://github.com/kubevirt/kubevirt/releases/download/v0.36.0/kubevirt-cr.yaml
         if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Install virtcl
-        run: |
-          export ARCH=linux-amd64
-          curl -L -o virtctl https://github.com/kubevirt/kubevirt/releases/download/v0.36.0/virtctl-v0.36.0-linux-amd64
-          chmod +x virtctl
-          sudo install virtctl /usr/local/bin
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            export ARCH=linux-amd64
+            curl -L -o virtctl https://github.com/kubevirt/kubevirt/releases/download/v0.36.0/virtctl-v0.36.0-linux-amd64
+            chmod +x virtctl
+            sudo install virtctl /usr/local/bin
         if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Build molecule test container for ${{ matrix.tox_env }}
@@ -167,15 +191,23 @@ jobs:
         if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Push molecule test to Kind
-        run: |
-          sudo kind load docker-image molecule_kubevirt_${{ matrix.tox_env }}:latest
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            sudo kind load docker-image molecule_kubevirt_${{ matrix.tox_env }}:latest
         if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Install kail
-        run: |
-          curl -SL https://github.com/boz/kail/releases/download/v0.15.0/kail_0.15.0_linux_amd64.tar.gz -o kail.tar.gz
-          tar xf kail.tar.gz
-          sudo install kail /usr/local/bin
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            curl -SL https://github.com/boz/kail/releases/download/v0.15.0/kail_0.15.0_linux_amd64.tar.gz -o kail.tar.gz
+            tar xf kail.tar.gz
+            sudo install kail /usr/local/bin
         if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Wait and get kubevirt status
