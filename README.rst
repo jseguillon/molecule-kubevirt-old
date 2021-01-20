@@ -4,6 +4,12 @@ Molecule kubevirt Plugin
 
 ! Very alpha version - All configuration fields and behaviours may be subject to breaking changes !
 
+Ansible runner requires :
+- ansible-galaxy collection install community.general
+- ansible-galaxy collection install community.crypto
+- ansible-galaxy collection install community.kubernetes.git
+- pip install openshift jmespath
+
 .. image:: https://badge.fury.io/py/molecule-kubevirt.svg
    :target: https://badge.fury.io/py/molecule-kubevirt
    :alt: PyPI Package
