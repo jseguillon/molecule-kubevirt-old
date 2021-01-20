@@ -197,9 +197,12 @@ jobs:
 
       - name: Launch background log scripts
         run: |
-          # Kail monitor any logs from default namespace
+          # Kail monitors any logs from default namespace
           sudo kail -n default 2>&1 > /tmp/kail.log || true &
+          # Infinite script waits for new VMs up and fetch logs from console
           (sudo tools/log_console.sh || true ) &
+          # Event router reports any event as log, a great help for troubleshooting since Kind exports all running Pods logs
+          sudo kubectl create -f https://raw.githubusercontent.com/heptiolabs/eventrouter/master/yaml/eventrouter.yaml
 
       - name: Launch test
         uses: nick-invision/retry@v2
@@ -265,7 +268,6 @@ jobs:
           echo "** Console log"
           sudo cat /tmp/virtcl-console*.log || true
           sudo cp /tmp/kail.log ${LOG_DIR} || true
-          sudo cp /tmp/describes.txt ${LOG_DIR} || true
           sudo cp /tmp/virtcl.txt ${LOG_DIR} || true
           sudo dmesg > ${LOG_DIR}/dmesg.txt || true
           sudo kind export logs ${LOG_DIR} || true
