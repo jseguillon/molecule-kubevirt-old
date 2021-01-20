@@ -116,6 +116,12 @@ jobs:
           sudo tar -C /usr/libexec/cni -xvzf /tmp/cni.tgz
         if: ${{ contains(matrix.tox_env, 'py') }}
 
+      - name: Enable ipv4 and ipv6 forwarding
+        run: |
+          sudo sysctl -w net.ipv6.conf.all.forwarding=1
+          sudo sysctl -w net.ipv4.ip_forward=1
+        if: ${{ contains(matrix.tox_env, 'py') }}
+
       - name: Create single node Cluster
         run: |
           cat <<EOF | sudo kind create cluster -v7 --wait 1m --retain --config=-
