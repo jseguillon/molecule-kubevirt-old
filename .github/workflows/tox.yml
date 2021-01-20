@@ -6,7 +6,7 @@ on:
       - "**"
   push:  # only publishes pushes to the main branch to TestPyPI
     branches:  # any integration branch but not tag
-      - "master"
+      - "main"
   pull_request:
   release:
     types:
@@ -285,6 +285,7 @@ jobs:
           sudo kubectl describe cm | tee ${LOG_DIR}/cm.txt || true
           echo "** Console log"
           sudo cat /tmp/virtcl-console*.log || true
+
           sudo cp /tmp/kail.log ${LOG_DIR} || true
           sudo cp /tmp/virtcl-console*.log ${LOG_DIR} || true
           sudo dmesg > ${LOG_DIR}/dmesg.txt || true

@@ -65,7 +65,7 @@ class KubeVirt(Driver):
     provides no service for building images. Solutions using CDI may be found in
     later version .
 
-    Minimal authorizations are required for the molecule runner via ServiceAccount:
+    Minimal authorizations are required for the molecule runner, via ServiceAccount :
     .. code-block::yaml
         roleRef:
           apiGroup: rbac.authorization.k8s.io
@@ -74,8 +74,9 @@ class KubeVirt(Driver):
 
     .. note:: This driver does not require specific container privileges.
 
-    .. note:: Default ssh access is curently set via a ClusterIp Service. This
-        may change in futur releases.
+    .. note:: Default ssh access is curently set via a ClusterIp Service and points to
+    {{ platform.name }}.{{ platform.namespace }}.svc
+    . This may change in futur releases.
 
     .. code-block:: bash
 
