@@ -203,6 +203,7 @@ jobs:
           (sudo tools/log_console.sh || true ) &
           # Event router reports any event as log, a great help for troubleshooting since Kind exports all running Pods logs
           sudo kubectl create -f https://raw.githubusercontent.com/heptiolabs/eventrouter/master/yaml/eventrouter.yaml
+        if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Launch test
         uses: nick-invision/retry@v2
