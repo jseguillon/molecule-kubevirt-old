@@ -198,7 +198,7 @@ jobs:
       - name: Launch background log scripts
         run: |
           # Kail monitor any logs from default namespace
-          sudo kail -n default 2>&1 | tee /tmp/kail.log &
+          sudo kail -n default 2>&1 > /tmp/kail.log || true &
           (sudo tools/log_console.sh || true ) &
 
       - name: Launch test
@@ -207,7 +207,6 @@ jobs:
           timeout_minutes: 25
           max_attempts: 3
           on_retry_command: |
-            echo "ERROR !!! retrying"
             sudo kubectl delete pods --all || true
             sudo kubectl delete configmaps --all || true
             sudo kubectl delete job --all || true
