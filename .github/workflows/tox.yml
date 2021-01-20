@@ -112,21 +112,6 @@ jobs:
             sudo install kind /usr/local/bin
         if: ${{ contains(matrix.tox_env, 'py') }}
 
-      - name: Enable ipv4 and ipv6 forwarding
-        run: |
-          sudo sysctl -w net.ipv6.conf.all.forwarding=1
-          sudo sysctl -w net.ipv4.ip_forward=1
-        if: ${{ contains(matrix.tox_env, 'py') }}
-
-      - name: Install kubernetes CNIs
-        run: |
-          sudo mkdir -p /etc/cni/net.d
-          # curl -qsSL https://raw.githubusercontent.com/containers/libpod/master/cni/87-podman-bridge.conflist | sudo tee /etc/cni/net.d/87-podman-bridge.conf
-          curl -qsSL https://github.com/containernetworking/plugins/releases/download/v0.8.6/cni-plugins-linux-amd64-v0.8.6.tgz --output /tmp/cni.tgz
-          sudo mkdir -p /usr/libexec/cni
-          sudo tar -C /usr/libexec/cni -xvzf /tmp/cni.tgz
-        if: ${{ contains(matrix.tox_env, 'py') }}
-
       - name: Create single node Cluster
         run: |
           cat <<EOF | sudo kind create cluster -v7 --wait 1m --retain --config=-
@@ -301,7 +286,7 @@ jobs:
           echo "** Console log"
           sudo cat /tmp/virtcl-console*.log || true
           sudo cp /tmp/kail.log ${LOG_DIR} || true
-          sudo cp /tmp/virtcl.txt ${LOG_DIR} || true
+          sudo cp /tmp/virtcl-console*.log ${LOG_DIR} || true
           sudo dmesg > ${LOG_DIR}/dmesg.txt || true
           sudo kind export logs ${LOG_DIR} || true
           sudo journalctl | cat > ${LOG_DIR}/journalctl.txt || true
