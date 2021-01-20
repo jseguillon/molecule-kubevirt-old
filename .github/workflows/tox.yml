@@ -263,7 +263,7 @@ jobs:
           echo "** Configmap"
           sudo kubectl describe cm | tee ${LOG_DIR}/cm.txt || true
           echo "** Console log"
-          sudo cat /tmp/virtcl.txt || true
+          sudo cat /tmp/virtcl-console*.log || true
           sudo cp /tmp/kail.log ${LOG_DIR} || true
           sudo cp /tmp/describes.txt ${LOG_DIR} || true
           sudo cp /tmp/virtcl.txt ${LOG_DIR} || true
