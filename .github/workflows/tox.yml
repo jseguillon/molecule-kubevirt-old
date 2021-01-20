@@ -60,9 +60,13 @@ jobs:
         if: ${{ ! contains(matrix.tox_env, 'py') }}
 
       - name: Install dependencies
-        run: |
-          python -m pip install -U pip
-          pip install tox
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            python -m pip install -U pip
+            pip install tox
         if: ${{ ! contains(matrix.tox_env, 'py') }}
 
       - name: Run tox -e ${{ matrix.tox_env }}
@@ -75,36 +79,43 @@ jobs:
         run: |
           sudo apt-get update
 
-      - name: Tune system
-        run: |
-          . /etc/os-release
-          ## FIXME Workaround for https://github.com/kubernetes/kubernetes/issues/61058
-          ### And https://github.com/LiliC/travis-minikube/blob/e0f26f7b388057f51a0e2558afd5f990e07b6c49/.travis.yml#L11
-          sudo mount --make-rshared /
-          ### conntrack is required by kube 1.18
-          sudo apt-get update
-          sudo apt-get install -y conntrack
-        if: ${{ contains(matrix.tox_env, 'py') }}
-
       - name: Install docker
-        run: |
-          . /etc/os-release
-          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-          sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-          sudo apt-get update
-          sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            . /etc/os-release
+            curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+            sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+            sudo apt-get update
+            sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
         if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Install kubectl
-        run: |
-          curl -LO https://storage.googleapis.com/kubernetes-release/release/${{ matrix.KUBERNETES_VERSION }}/bin/linux/amd64/kubectl; chmod +x ./kubectl
-          sudo install kubectl /usr/local/bin
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            curl -LO https://storage.googleapis.com/kubernetes-release/release/${{ matrix.KUBERNETES_VERSION }}/bin/linux/amd64/kubectl; chmod +x ./kubectl
+            sudo install kubectl /usr/local/bin
         if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Install kind
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            curl -Lo ./kind "https://kind.sigs.k8s.io/dl/v0.9.0/kind-$(uname)-amd64" && chmod +x ./kind
+            sudo install kind /usr/local/bin
+        if: ${{ contains(matrix.tox_env, 'py') }}
+
+      - name: Enable ipv4 and ipv6 forwarding
         run: |
-          curl -Lo ./kind "https://kind.sigs.k8s.io/dl/v0.9.0/kind-$(uname)-amd64" && chmod +x ./kind
-          sudo install kind /usr/local/bin
+          sudo sysctl -w net.ipv6.conf.all.forwarding=1
+          sudo sysctl -w net.ipv4.ip_forward=1
         if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Install kubernetes CNIs
@@ -136,7 +147,7 @@ jobs:
 
       - name: Install kubevirt packages requirements
         run: |
-          sudo apt install -y qemu qemu-kvm libvirt-daemon libvirt-clients bridge-utils virt-manager libvirt-daemon-system dnsmasq
+          sudo apt install -y qemu qemu-kvm libvirt-daemon libvirt-clients bridge-utils virt-manager libvirt-daemon-system
           sudo systemctl restart libvirtd
         if: ${{ contains(matrix.tox_env, 'py') }}
 
@@ -150,18 +161,26 @@ jobs:
         if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Install kubevirt
-        run: |
-          sudo kubectl create -f https://github.com/kubevirt/kubevirt/releases/download/v0.36.0/kubevirt-operator.yaml
-          sudo kubectl create configmap kubevirt-config -n kubevirt --from-literal debug.useEmulation=true
-          sudo kubectl create -f https://github.com/kubevirt/kubevirt/releases/download/v0.36.0/kubevirt-cr.yaml
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            sudo kubectl create -f https://github.com/kubevirt/kubevirt/releases/download/v0.36.0/kubevirt-operator.yaml
+            sudo kubectl create configmap kubevirt-config -n kubevirt --from-literal debug.useEmulation=true
+            sudo kubectl create -f https://github.com/kubevirt/kubevirt/releases/download/v0.36.0/kubevirt-cr.yaml
         if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Install virtcl
-        run: |
-          export ARCH=linux-amd64
-          curl -L -o virtctl https://github.com/kubevirt/kubevirt/releases/download/v0.36.0/virtctl-v0.36.0-linux-amd64
-          chmod +x virtctl
-          sudo install virtctl /usr/local/bin
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            export ARCH=linux-amd64
+            curl -L -o virtctl https://github.com/kubevirt/kubevirt/releases/download/v0.36.0/virtctl-v0.36.0-linux-amd64
+            chmod +x virtctl
+            sudo install virtctl /usr/local/bin
         if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Build molecule test container for ${{ matrix.tox_env }}
@@ -172,15 +191,23 @@ jobs:
         if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Push molecule test to Kind
-        run: |
-          sudo kind load docker-image molecule_kubevirt_${{ matrix.tox_env }}:latest
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            sudo kind load docker-image molecule_kubevirt_${{ matrix.tox_env }}:latest
         if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Install kail
-        run: |
-          curl -SL https://github.com/boz/kail/releases/download/v0.15.0/kail_0.15.0_linux_amd64.tar.gz -o kail.tar.gz
-          tar xf kail.tar.gz
-          sudo install kail /usr/local/bin
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            curl -SL https://github.com/boz/kail/releases/download/v0.15.0/kail_0.15.0_linux_amd64.tar.gz -o kail.tar.gz
+            tar xf kail.tar.gz
+            sudo install kail /usr/local/bin
         if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Wait and get kubevirt status
@@ -198,51 +225,67 @@ jobs:
         run: |
           # Service Account for Job
           sudo kubectl create -f tools/test-rolebinding.yaml
-          # Configmap will be witinig untill it is deleted, telling one Pod ended the Job
-          sudo kubectl create configmap molecule-job-running --from-literal status=Started
         if: ${{ contains(matrix.tox_env, 'py') }}
 
-      - name: Start test Job
+      - name: Launch background log scripts
         run: |
-          cat <<EOF | sudo kubectl apply -f -
-          ---
-          apiVersion: batch/v1
-          kind: Job
-          metadata:
-            name: molecule
-          spec:
-            template:
-              spec:
-                serviceAccountName: molecule-kubevirt
-                containers:
-                - name: molecule
-                  image: molecule_kubevirt_${{ matrix.tox_env }}
-                  imagePullPolicy: IfNotPresent
-                  command: [ "/bin/bash", "-c", "--" ]
-                  args: ["(tox -e ${{ matrix.tox_env }} -c /opt/molecule_kubevirt/tox.ini ; kubectl create configmap molecule-result --from-literal exitCode=\$?); kubectl delete configmap molecule-job-running"]
-                  env:
-                    - name: PYTEST_REQPASS
-                      value: "2"
-                restartPolicy: Never
-            backoffLimit: 0
-          EOF
-
-          echo "Job launched"
-        if: ${{ contains(matrix.tox_env, 'py') }}
-
-      - name: Wait for Job to end and log Pods in default namespace
-        run: |
-          # Kail monitor any logs from default namespace
-          sudo kail -n default 2>&1 | tee /tmp/kail.log &
-          # Wait for molecule Job Pod to start
-          sudo kubectl wait --for=condition=ready pods -l job-name=molecule --namespace default
-          # Launch virtctl console log script in backgroung
+          # Kail monitors any logs from default namespace
+          sudo kail -n default 2>&1 > /tmp/kail.log || true &
+          # Infinite script waits for new VMs up and fetch logs from console
           (sudo tools/log_console.sh || true ) &
-          # Wait for molecule Job to delete configmap, notifying one Job Pod ran till the end, whatever the result
-          sudo kubectl wait --for delete --timeout=20m  configmap/molecule-job-running
-          # Get molecule tests results
-          MOLECULE_RESULT=$(sudo kubectl get configmap molecule-result -o "jsonpath={.data['exitCode']}")
-          if [ ! "${MOLECULE_RESULT}" == "0" ]; then echo "Test non ok : ${MOLECULE_RESULT}"; exit 1; fi
+          # Event router reports any event as log, a great help for troubleshooting since Kind exports all running Pods logs
+          sudo kubectl create -f https://raw.githubusercontent.com/heptiolabs/eventrouter/master/yaml/eventrouter.yaml
+        if: ${{ contains(matrix.tox_env, 'py') }}
+
+      - name: Launch test
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 25
+          max_attempts: 3
+          on_retry_command: |
+            sudo kubectl delete pods --all || true
+            sudo kubectl delete configmaps --all || true
+            sudo kubectl delete job --all || true
+          command: |
+            # Configmap will be waitinig untill it is deleted, telling one Pod ended the Job
+            sudo kubectl create configmap molecule-job-running --from-literal status=Started
+            cat <<EOF | sudo kubectl apply -f -
+            ---
+            apiVersion: batch/v1
+            kind: Job
+            metadata:
+              name: molecule
+            spec:
+              template:
+                spec:
+                  serviceAccountName: molecule-kubevirt
+                  containers:
+                  - name: molecule
+                    image: molecule_kubevirt_${{ matrix.tox_env }}
+                    imagePullPolicy: IfNotPresent
+                    command: [ "/bin/bash", "-c", "--" ]
+                    args: ["(tox -e ${{ matrix.tox_env }} -c /opt/molecule_kubevirt/tox.ini ; kubectl create configmap molecule-result --from-literal exitCode=\$?); kubectl delete configmap molecule-job-running"]
+                    env:
+                      - name: PYTEST_REQPASS
+                        value: "2"
+                  restartPolicy: Never
+              backoffLimit: 0
+            EOF
+
+            echo "Job launched"
+
+            # Wait for molecule Job Pod to start
+            until (sudo kubectl get pods -l job-name=molecule | grep molecule); do echo "Wait molecule pod to start"; sleep 5; done
+
+            sudo kubectl wait --for=condition=ready pods -l job-name=molecule --namespace default
+            echo "Molecule pod is now running, waiting..."
+
+            # Wait for molecule Job to delete configmap, notifying one Job Pod ran till the end, whatever the result
+            sudo kubectl wait --for delete --timeout=20m  configmap/molecule-job-running
+
+            # Get molecule tests results and exit accordingly
+            MOLECULE_RESULT=$(sudo kubectl get configmap molecule-result -o "jsonpath={.data['exitCode']}")
+            if [ ! "${MOLECULE_RESULT}" == "0" ]; then echo "Test non ok : ${MOLECULE_RESULT}"; exit 1; fi
         if: ${{ contains(matrix.tox_env, 'py') }}
 
       - name: Dump and export logs
@@ -256,9 +299,8 @@ jobs:
           echo "** Configmap"
           sudo kubectl describe cm | tee ${LOG_DIR}/cm.txt || true
           echo "** Console log"
-          sudo cat /tmp/virtcl.txt || true
+          sudo cat /tmp/virtcl-console*.log || true
           sudo cp /tmp/kail.log ${LOG_DIR} || true
-          sudo cp /tmp/describes.txt ${LOG_DIR} || true
           sudo cp /tmp/virtcl.txt ${LOG_DIR} || true
           sudo dmesg > ${LOG_DIR}/dmesg.txt || true
           sudo kind export logs ${LOG_DIR} || true
